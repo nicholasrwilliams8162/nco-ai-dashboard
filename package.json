@@ -1,13 +1,48 @@
 {
   "name": "netsuite-ai-dashboard",
   "version": "1.0.0",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "install:all": "npm install --prefix server && npm install --prefix client",
     "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "electron:dev": "npm run build && electron .",
+    "electron:rebuild": "electron-rebuild -f -w better-sqlite3 --module-dir server",
+    "electron:dist": "npm run build && npm run electron:rebuild && electron-builder"
+  },
+  "dependencies": {
+    "auto-launch": "^5.0.6"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-rebuild": "^3.2.9"
+  },
+  "build": {
+    "appId": "com.nco.aidashboard",
+    "productName": "NCO AI Dashboard",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      { "from": "server", "to": "server" },
+      { "from": "client/dist", "to": "client/dist" }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

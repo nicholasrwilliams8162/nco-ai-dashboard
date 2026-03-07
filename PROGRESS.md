@@ -100,50 +100,134 @@ Every agent action is written to `agent_history` with full audit fields:
 - Revert button shown on any create/update that hasn't been reverted; requires `window.confirm`
 - After revert, row dims and shows "reverted at [timestamp]"
 
+### Autonomous Agents (complete)
+Scheduled automation system that runs SuiteQL queries and takes actions on NetSuite records on a cron schedule.
+
+**How it works:**
+1. User creates an agent with natural language instructions + cron schedule
+2. Groq generates a SuiteQL query + action plan (cached — no Groq call on repeat runs unless memories change)
+3. Agent runs on schedule: queries NetSuite, then per-row either flags, queues for approval, or auto-executes
+4. Self-correction: if the query fails, Groq gets the error and fixes the query automatically
+5. Agent learns from approve/deny decisions — memories injected into future prompts
+
+**Key features:**
+- Approval/denial workflow queue with deny reasons saved as memories
+- Duplicate pending todo prevention (skips re-queueing same record on re-runs)
+- Flagged results shown inline on the agent card
+- Collapsible last query shown on the card for debugging
+- Plan caching — skips Groq entirely on repeat runs with no new memories
+- Schema section selection — only sends relevant schema sections (~54-67% token reduction)
+- Pause/resume, enable/disable, manual run trigger
+- Tab state persisted to localStorage
+
+**Architecture:**
+- `server/services/autonomousAgentService.js` — core execution engine (plan, query, act, memory)
+- `server/services/schedulerService.js` — node-cron scheduler, loads agents on server start
+- `server/routes/autonomousAgents.js` — full REST API (agents, todos, notifications, runs)
+- `client/src/pages/AutomationPage.jsx` — full UI with 4 tabs: Agents, Approvals, Activity, Run History
+- `server/db/database.js` — 5 new tables: `autonomous_agents`, `agent_runs`, `agent_todos`, `agent_notifications`, `agent_memories`
+
+**REST API write fixes:**
+- `restRecordClient.js`: write timeout raised to 90s, before-state GET and PATCH run in parallel via `Promise.allSettled`, retry once on timeout
+
+**SuiteQL corrections discovered:**
+- `foreigntotal` not `amount` on transaction table
+- `mainline` is on `transactionline`, never on `transaction`
+- SalesOrd "open" = `NOT LIKE '%Billed%' AND NOT LIKE '%Closed%' AND NOT LIKE '%Cancelled%'` (no "Open" label exists)
+- Record type normalization: display names ("Sales Order") → REST API names ("salesorder")
+
+---
+
+### Railway Deployment (complete)
+Deployed to Railway as a persistent server — cron scheduler runs continuously.
+
+- `server/index.js` serves built React static files in production (`NODE_ENV=production`)
+- `DATA_DIR` env var controls SQLite path (points to Railway volume mount `/data` when available)
+- CORS disabled in production (same-origin)
+- `railway.json` + `nixpacks.toml` (includes `nodejs_20`, `python3`, `gcc`, `gnumake` for better-sqlite3 native build)
+- Root `package.json` `build` + `start` scripts used by Railway
+- Live at: `https://nco-ai-dashboard-production.up.railway.app`
+- GitHub repo: `https://github.com/nicholasrwilliams8162/nco-ai-dashboard`
+- Every `git push master` triggers auto-redeploy
+
+**Note:** No persistent volume yet (requires Railway Pro). DB resets on redeploy. Add volume at `/data` + `DATA_DIR=/data` env var when upgrading.
+
+---
+
+### Electron Desktop App (complete)
+Packaged as a standalone Mac desktop app with system tray and auto-launch at login.
+
+**How it works:**
+- Electron main process spawns the Express server as a child process (system `node` in dev, `ELECTRON_RUN_AS_NODE=1` in prod)
+- Waits for server health check before opening window
+- Window hides to tray on close (keeps running in background)
+- Tray icon: right-click → Open Dashboard / Quit
+- Auto-registers for login startup via `auto-launch`
+- SQLite DB stored in `app.getPath('userData')` (persists across app updates)
+
+**Key files:**
+- `electron/main.cjs` — Electron main process
+- `dist-electron/NCO AI Dashboard-1.0.0-arm64.dmg` — Mac installer (arm64)
+
+**Scripts:**
+- `npm run electron:dev` — dev mode (builds client, opens Electron window)
+- `npm run electron:dist` — builds DMG installer
+
+**Known limitations:**
+- No code signing (Apple Developer cert required) — users must right-click → Open on first launch
+- Default Electron icon (no custom .icns yet)
+- Auto-launch requires user permission on macOS Ventura+
+
 ---
 
 ## Current status
 
-**Fully working, mobile responsive.** Queries run, results display, widgets pin to dashboard, chart types switchable, DataTables rendering correctly. Agent page live — creates/updates real NetSuite records, clarification flow prevents bad data, full audit log with revert support.
+**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, and Electron desktop app all functional.
 
 ## Key files
 
 ```
 server/
-  index.js                      # Express app, all routes mounted
-  routes/ai.js                  # POST /api/ai/query, GET /api/ai/history
-  routes/agent.js               # POST /api/agent/plan|execute, GET /history, POST /history/:id/revert
-  routes/auth.js                # OAuth PKCE flow + Groq key + settings
-  routes/dashboard.js           # Widget CRUD, layout, refresh
-  services/aiService.js         # Groq query pipeline + self-correction
-  services/agentService.js      # Agent planning + plan execution (5-min TTL store)
-  services/restRecordClient.js  # NetSuite REST Record API (create/update/get/inactivate)
-  services/netsuiteClient.js    # SuiteQL + token refresh (getValidToken exported)
-  services/schemaContext.js     # SuiteQL schema prompt context
-  db/database.js                # SQLite init + migrations (incl. agent_history)
+  index.js                          # Express app, static serving in prod
+  routes/ai.js                      # POST /api/ai/query, GET /api/ai/history
+  routes/agent.js                   # POST /api/agent/plan|execute, history, revert
+  routes/auth.js                    # OAuth PKCE flow + Groq key + settings
+  routes/dashboard.js               # Widget CRUD, layout, refresh
+  routes/autonomousAgents.js        # Agents, todos, notifications, runs CRUD
+  services/aiService.js             # Groq query pipeline + self-correction
+  services/agentService.js          # Agent planning + plan execution
+  services/autonomousAgentService.js # Autonomous agent execution engine
+  services/schedulerService.js      # node-cron scheduler
+  services/restRecordClient.js      # NetSuite REST Record API
+  services/netsuiteClient.js        # SuiteQL + token refresh
+  services/schemaContext.js         # Section-selected schema context
+  db/database.js                    # SQLite init + all migrations
 
 client/src/
-  App.jsx                       # Root — auth gating, navbar, Dashboard/Agent toggle
-  pages/AgentPage.jsx           # Agent page (plan → confirm → execute flow)
-  components/Dashboard/DashboardGrid.jsx
-  components/Dashboard/WidgetCard.jsx
-  components/Charts/WidgetRenderer.jsx
-  components/Charts/DataTable.jsx
-  components/QueryBar/NaturalLanguageInput.jsx
-  components/Settings/SettingsPanel.jsx
-  store/dashboardStore.js
+  App.jsx                           # Root — 3-tab nav (Dashboard/Agent/Automation)
+  pages/AgentPage.jsx               # Manual agent write operations
+  pages/AutomationPage.jsx          # Autonomous agents + approvals + activity
+  components/Dashboard/
+  components/Charts/
+  components/QueryBar/
+  components/Settings/
+
+electron/
+  main.cjs                          # Electron main process (tray, window, server spawn)
 ```
 
 ## To resume
-1. `cd ~/netsuite-ai-dashboard && npm run dev`
-2. Open http://localhost:5173 (or 5174 if port taken)
-3. If port 3001 stuck: `lsof -ti :3001 | xargs kill -9`
+- **Web dev**: `cd ~/netsuite-ai-dashboard && npm run dev` → http://localhost:5173
+- **Electron dev**: `npm run electron:dev`
+- **Build installer**: `npm run electron:dist`
+- **Deploy**: `git push master` (Railway auto-deploys)
+- If port 3001 stuck: `lsof -ti :3001 | xargs kill -9`
 
 ## Ideas / next steps
-- Multi-dashboard support (create / switch dashboards)
-- Query history UI on dashboard page
-- Agent multi-step workflows (find customer → update)
-- Custom MCP tool builder via SuiteScript
-- Scheduled refresh notifications
+- Multi-dashboard support
+- Custom app icon for Electron (.icns)
+- Code signing for Mac distribution
+- Windows build (NSIS installer)
+- Persistent volume on Railway (Pro plan)
+- Agent multi-step workflows
 - Export dashboard as PDF/image
-- Production deployment (Docker, env config)

@@ -2,6 +2,9 @@ node_modules/
 .env
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 dist/
 client/dist/
+dist-electron/
 .DS_Store
