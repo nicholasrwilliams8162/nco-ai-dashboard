@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/db:/app/server/db   # persist SQLite database
+    env_file:
+      - .env
+    restart: unless-stopped

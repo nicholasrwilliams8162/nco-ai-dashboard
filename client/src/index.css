@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #111827;
+  color: #f9fafb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  /* Prevent bounce-scroll from revealing gray behind the app shell */
+  overscroll-behavior: none;
+}
+
+/* react-grid-layout overrides */
+.react-grid-item.react-grid-placeholder {
+  background: #3b82f6;
+  opacity: 0.15;
+  border-radius: 12px;
+}
+
+.react-resizable-handle {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.react-grid-item:hover .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-resizable-handle::after {
+  border-right-color: #6b7280 !important;
+  border-bottom-color: #6b7280 !important;
+}
+
+/* Hide scrollbar while preserving scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── DataTables dark theme ─────────────────────────────────────────────── */
+
+/* Wrapper — ensure overflow is clipped so the table doesn't burst its card */
+.dt-wrapper {
+  overflow: auto;
+  height: 100%;
+  font-size: 0.8125rem; /* 13px — slightly smaller than body to fit more rows */
+}
+
+/* Layout rows (search + paging controls) — compact vertical rhythm */
+.dt-wrapper .dt-layout-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+.dt-wrapper .dt-layout-start { flex: 1; min-width: 0; }
+.dt-wrapper .dt-layout-end   { flex-shrink: 0; }
+
+/* Column headers */
+.dt-wrapper table.dataTable thead th,
+.dt-wrapper table.dataTable thead td {
+  background-color: #1f2937;
+  color: #d1d5db;
+  border-bottom: 1px solid #374151;
+  font-weight: 500;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.dt-wrapper table.dataTable thead th:hover {
+  background-color: #374151;
+}
+
+/* Body rows */
+.dt-wrapper table.dataTable tbody tr {
+  background-color: transparent;
+}
+
+.dt-wrapper table.dataTable tbody tr td {
+  background-color: transparent;
+  color: #d1d5db;
+  border-bottom: 1px solid #1f2937;
+  padding: 6px 10px;
+}
+
+.dt-wrapper table.dataTable tbody tr:hover td {
+  background-color: #374151 !important;
+}
+
+.dt-wrapper table.dataTable tbody tr.odd td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Search input + length select */
+.dt-wrapper .dt-search input,
+.dt-wrapper .dt-length select {
+  background-color: #1f2937;
+  color: #d1d5db;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 4px 8px;
+  outline: none;
+  font-size: 0.75rem;
+}
+
+.dt-wrapper .dt-search input:focus,
+.dt-wrapper .dt-length select:focus {
+  border-color: #3b82f6;
+}
+
+/* Paging buttons */
+.dt-wrapper .dt-paging button {
+  background-color: #1f2937;
+  color: #9ca3af;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  margin: 0 2px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  min-width: 28px;
+  /* Touch-friendly — bumped slightly on mobile via min-height below */
+  min-height: 28px;
+}
+
+.dt-wrapper .dt-paging button:hover {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.dt-wrapper .dt-paging button.current {
+  background-color: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+/* Row count info */
+.dt-wrapper .dt-info {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.dt-wrapper table.dataTable.no-footer {
+  border-bottom: none;
+}
+
+
+/* Mobile-specific DataTables adjustments */
+@media (max-width: 639px) {
+  .dt-wrapper table.dataTable thead th,
+  .dt-wrapper table.dataTable thead td,
+  .dt-wrapper table.dataTable tbody tr td {
+    padding: 6px 8px;
+  }
+
+  .dt-wrapper .dt-paging button {
+    min-height: 32px;
+    min-width: 32px;
+  }
+
+  /* On very small screens, let the search bar take full width */
+  .dt-wrapper .dt-layout-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dt-wrapper .dt-layout-start,
+  .dt-wrapper .dt-layout-end {
+    width: 100%;
+  }
+
+  .dt-wrapper .dt-search input {
+    width: 100%;
+  }
+}
+
+/* Respect reduced-motion preference for all transitions */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
