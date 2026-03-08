@@ -21,11 +21,11 @@ const NOTIFY_OPTIONS = [
   { value: 'never',        label: 'Never — run silently' },
 ];
 
-const STATUS_PILL = {
-  completed: 'bg-green-900/40 text-green-300 border-green-700/50',
-  running:   'bg-blue-900/40  text-blue-300  border-blue-700/50',
-  failed:    'bg-red-900/40   text-red-300   border-red-700/50',
-  pending:   'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
+const STATUS_PILL_STYLE = {
+  completed: { background: 'var(--green-light)', color: 'var(--green)', border: '1px solid color-mix(in srgb, var(--green) 30%, transparent)' },
+  running:   { background: 'var(--blue-light)',  color: 'var(--blue)',  border: '1px solid color-mix(in srgb, var(--blue) 30%, transparent)' },
+  failed:    { background: 'var(--red-light)',   color: 'var(--red)',   border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' },
+  pending:   { background: 'var(--amber-light)', color: 'var(--amber)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' },
 };
 
 const TYPE_ICON = {
@@ -39,7 +39,7 @@ const EMPTY_FORM = {
   name: '',
   description: '',
   instructions: '',
-  schedule: SCHEDULE_OPTIONS[4].cron, // Daily at 6 AM
+  schedule: SCHEDULE_OPTIONS[4].cron,
   customCron: '',
   require_approval: true,
   notification_frequency: 'immediate',
@@ -106,39 +106,39 @@ function AgentForm({ initial, onSave, onCancel }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Name */}
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Name *</label>
+        <label className="block text-xs font-medium text-t2 mb-1">Name *</label>
         <input
           value={form.name}
           onChange={e => set('name', e.target.value)}
           placeholder="e.g. Overdue order monitor"
-          className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          className="w-full bg-card border border-border text-t1 placeholder-t3 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
           required
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Description <span className="text-gray-600">(optional)</span></label>
+        <label className="block text-xs font-medium text-t2 mb-1">Description <span className="text-t4">(optional)</span></label>
         <input
           value={form.description}
           onChange={e => set('description', e.target.value)}
           placeholder="Short note about what this agent does"
-          className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          className="w-full bg-card border border-border text-t1 placeholder-t3 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
         />
       </div>
 
       {/* Instructions */}
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Instructions *</label>
+        <label className="block text-xs font-medium text-t2 mb-1">Instructions *</label>
         <textarea
           value={form.instructions}
           onChange={e => set('instructions', e.target.value)}
           placeholder={`Describe what to check and what to do. Be specific.\n\nExamples:\n• "Find all open sales orders over $10,000 that are more than 14 days old and flag them for review."\n• "Check for customers with overdue balances over $5,000 and put them on credit hold."\n• "Find any vendor bills over $50,000 created in the last 24 hours and flag them for approval."`}
           rows={6}
-          className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full bg-card border border-border text-t1 placeholder-t3 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-accent resize-none"
           required
         />
-        <p className="text-xs text-gray-600 mt-1">
+        <p className="text-xs text-t4 mt-1">
           Plain English. Include what to find, any thresholds, and what action to take.
         </p>
       </div>
@@ -146,11 +146,11 @@ function AgentForm({ initial, onSave, onCancel }) {
       {/* Schedule */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1">Schedule *</label>
+          <label className="block text-xs font-medium text-t2 mb-1">Schedule *</label>
           <select
             value={form.schedule}
             onChange={e => set('schedule', e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            className="w-full bg-card border border-border text-t1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
           >
             {SCHEDULE_OPTIONS.map(o => (
               <option key={o.cron} value={o.cron}>{o.label}</option>
@@ -159,12 +159,12 @@ function AgentForm({ initial, onSave, onCancel }) {
         </div>
         {isCustom && (
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Cron expression</label>
+            <label className="block text-xs font-medium text-t2 mb-1">Cron expression</label>
             <input
               value={form.customCron}
               onChange={e => set('customCron', e.target.value)}
               placeholder="*/5 * * * *"
-              className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-card border border-border text-t1 placeholder-t3 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent font-mono"
               required
             />
           </div>
@@ -173,11 +173,11 @@ function AgentForm({ initial, onSave, onCancel }) {
 
       {/* Notifications */}
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Notifications</label>
+        <label className="block text-xs font-medium text-t2 mb-1">Notifications</label>
         <select
           value={form.notification_frequency}
           onChange={e => set('notification_frequency', e.target.value)}
-          className="w-full bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          className="w-full bg-card border border-border text-t1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
         >
           {NOTIFY_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -186,10 +186,10 @@ function AgentForm({ initial, onSave, onCancel }) {
       </div>
 
       {/* Require approval toggle */}
-      <div className="flex items-center justify-between py-2 px-3 bg-gray-800/60 border border-gray-700 rounded-lg">
+      <div className="flex items-center justify-between py-2 px-3 bg-card2 border border-border rounded-lg">
         <div>
-          <p className="text-sm text-gray-200">Require approval before executing</p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-t1">Require approval before executing</p>
+          <p className="text-xs text-t3 mt-0.5">
             When on, matching records go to the Approvals queue. When off, actions run automatically.
           </p>
         </div>
@@ -197,7 +197,7 @@ function AgentForm({ initial, onSave, onCancel }) {
           type="button"
           onClick={() => set('require_approval', !form.require_approval)}
           className={`relative ml-4 flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
-            form.require_approval ? 'bg-blue-600' : 'bg-gray-600'
+            form.require_approval ? 'bg-accent' : 'bg-border'
           }`}
         >
           <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
@@ -212,11 +212,11 @@ function AgentForm({ initial, onSave, onCancel }) {
 
       <div className="flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 rounded-lg text-sm transition-colors">
+          className="px-4 py-2 border border-border text-t2 hover:text-t1 hover:bg-card2 rounded-lg text-sm transition-colors">
           Cancel
         </button>
         <button type="submit" disabled={saving || !form.name.trim() || !form.instructions.trim()}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+          className="px-5 py-2 bg-accent hover:bg-accent-mid disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
           {saving && (
             <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -304,26 +304,30 @@ function AgentCard({ agent, onRefresh, onEdit }) {
   };
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-colors ${
-      isActive ? 'border-gray-700 bg-gray-800/40' : 'border-gray-700/50 bg-gray-800/20 opacity-70'
+    <div className={`border rounded-xl overflow-hidden transition-colors shadow-card ${
+      isActive ? 'border-border bg-card' : 'border-border-soft bg-card opacity-70'
     }`}>
       <div className="px-5 py-4">
         <div className="flex items-start gap-3">
           {/* Status dot */}
           <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-            !agent.enabled ? 'bg-gray-600' :
+            !agent.enabled ? 'bg-t4' :
             agent.paused   ? 'bg-yellow-500' :
             'bg-green-500 shadow-[0_0_6px_rgba(74,222,128,0.5)]'
           }`} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-medium text-white">{agent.name}</h3>
+              <h3 className="font-semibold text-t1">{agent.name}</h3>
               {agent.paused && agent.enabled && (
-                <span className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-700/40 rounded px-1.5 py-0.5">Paused</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
+                  background: 'var(--amber-light)', color: 'var(--amber)',
+                  border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+                }}>Paused</span>
               )}
               {!agent.enabled && (
-                <span className="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5">Disabled</span>
+                <span className="text-xs text-t3 bg-card2 border border-border rounded px-1.5 py-0.5">Disabled</span>
               )}
               {agent.require_approval ? (
                 <span className="text-xs text-blue-400 bg-blue-900/20 border border-blue-700/30 rounded px-1.5 py-0.5">Approval required</span>
@@ -333,33 +337,32 @@ function AgentCard({ agent, onRefresh, onEdit }) {
             </div>
 
             {agent.description && (
-              <p className="text-sm text-gray-400 mt-0.5">{agent.description}</p>
+              <p className="text-sm text-t2 mt-0.5">{agent.description}</p>
             )}
 
             <div className="flex items-center gap-4 mt-2 flex-wrap">
-              <span className="text-xs text-gray-500">
-                <span className="text-gray-600">Schedule:</span> {scheduleLabel(agent.schedule)}
+              <span className="text-xs text-t3">
+                <span className="text-t4">Schedule:</span> {scheduleLabel(agent.schedule)}
               </span>
-              <span className="text-xs text-gray-500">
-                <span className="text-gray-600">Last run:</span> {relativeTime(agent.last_run_at)}
+              <span className="text-xs text-t3">
+                <span className="text-t4">Last run:</span> {relativeTime(agent.last_run_at)}
               </span>
               {agent.pending_todos > 0 && (
                 <span className="text-xs text-yellow-300 bg-yellow-900/30 border border-yellow-700/40 rounded-full px-2 py-0.5">
                   {agent.pending_todos} pending approval
                 </span>
               )}
-              <span className="text-xs text-gray-600">{agent.total_runs ?? 0} runs total</span>
+              <span className="text-xs text-t4">{agent.total_runs ?? 0} runs total</span>
             </div>
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Run Now */}
             <button
               onClick={handleRunNow}
               disabled={running || !agent.enabled}
               title="Run now"
-              className="p-1.5 text-gray-500 hover:text-blue-400 disabled:opacity-30 transition-colors rounded"
+              className="p-1.5 text-t3 hover:text-accent disabled:opacity-30 transition-colors rounded"
             >
               {running ? (
                 <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -374,12 +377,11 @@ function AgentCard({ agent, onRefresh, onEdit }) {
               )}
             </button>
 
-            {/* Pause/Resume */}
             <button
               onClick={handlePauseResume}
               disabled={toggling || !agent.enabled}
               title={agent.paused ? 'Resume' : 'Pause'}
-              className="p-1.5 text-gray-500 hover:text-yellow-400 disabled:opacity-30 transition-colors rounded"
+              className="p-1.5 text-t3 hover:text-yellow-400 disabled:opacity-30 transition-colors rounded"
             >
               {agent.paused ? (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,24 +395,22 @@ function AgentCard({ agent, onRefresh, onEdit }) {
               )}
             </button>
 
-            {/* Edit */}
             <button
               onClick={() => onEdit(agent)}
               title="Edit"
-              className="p-1.5 text-gray-500 hover:text-white transition-colors rounded"
+              className="p-1.5 text-t3 hover:text-t1 transition-colors rounded"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </button>
 
-            {/* Enabled toggle */}
             <button
               onClick={handleToggleEnabled}
               disabled={toggling}
               title={agent.enabled ? 'Disable' : 'Enable'}
               className={`relative w-9 h-5 rounded-full transition-colors disabled:opacity-50 flex-shrink-0 ${
-                agent.enabled ? 'bg-blue-600' : 'bg-gray-600'
+                agent.enabled ? 'bg-accent' : 'bg-border'
               }`}
             >
               <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
@@ -418,23 +418,21 @@ function AgentCard({ agent, onRefresh, onEdit }) {
               }`} />
             </button>
 
-            {/* Expand / instructions preview */}
             <button
               onClick={() => { setExpanded(v => { if (!v) loadFlags(); return !v; }); }}
               title="View instructions"
-              className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors rounded"
+              className="p-1.5 text-t3 hover:text-t2 transition-colors rounded"
             >
               <svg className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
-            {/* Delete */}
             <button
               onClick={handleDelete}
               disabled={deleting}
               title="Delete agent"
-              className="p-1.5 text-gray-600 hover:text-red-400 disabled:opacity-30 transition-colors rounded"
+              className="p-1.5 text-t4 hover:text-red-400 disabled:opacity-30 transition-colors rounded"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -444,19 +442,19 @@ function AgentCard({ agent, onRefresh, onEdit }) {
         </div>
 
         {expanded && (
-          <div className="mt-3 pt-3 border-t border-gray-700/60 space-y-3">
+          <div className="mt-3 pt-3 border-t border-border space-y-3">
             <div>
-              <p className="text-xs text-gray-500 mb-1">Instructions</p>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{agent.instructions}</p>
+              <p className="text-xs text-t3 mb-1">Instructions</p>
+              <p className="text-sm text-t2 whitespace-pre-wrap leading-relaxed">{agent.instructions}</p>
             </div>
             {runResult && (
               <div className="bg-green-900/20 border border-green-700/40 rounded-lg p-3 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs text-green-400 font-medium mb-0.5">Run complete</p>
                   {runResult.recordsFound === 0 ? (
-                    <p className="text-xs text-gray-400">No records matched the criteria</p>
+                    <p className="text-xs text-t2">No records matched the criteria</p>
                   ) : (
-                    <p className="text-xs text-gray-300">
+                    <p className="text-xs text-t1">
                       {runResult.recordsFound} record{runResult.recordsFound !== 1 ? 's' : ''} found
                       {runResult.actionsCreated > 0 && ` — ${runResult.actionsCreated} ${agent.require_approval ? 'queued for approval' : 'action(s) taken'}`}
                       {agent.require_approval ? '. Check the Approvals tab.' : '. Check the Activity tab.'}
@@ -479,17 +477,17 @@ function AgentCard({ agent, onRefresh, onEdit }) {
             )}
             {/* Flagged results */}
             {loadingFlags ? (
-              <p className="text-xs text-gray-600">Loading flags…</p>
+              <p className="text-xs text-t4">Loading flags…</p>
             ) : flags.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500 mb-2">Flagged results ({flags.length})</p>
+                <p className="text-xs text-t3 mb-2">Flagged results ({flags.length})</p>
                 <div className="space-y-1.5 max-h-64 overflow-y-auto">
                   {flags.map(f => (
                     <div key={f.id} className="flex items-start gap-2 px-3 py-2 bg-yellow-900/10 border border-yellow-700/20 rounded-lg">
                       <span className="text-yellow-500 text-xs mt-0.5 flex-shrink-0">⚑</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-200">{f.message}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{relativeTime(f.created_at)}</p>
+                        <p className="text-xs text-t1">{f.message}</p>
+                        <p className="text-xs text-t4 mt-0.5">{relativeTime(f.created_at)}</p>
                       </div>
                     </div>
                   ))}
@@ -499,8 +497,8 @@ function AgentCard({ agent, onRefresh, onEdit }) {
 
             {agent.last_run_query && (
               <details>
-                <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">Last run — generated query</summary>
-                <pre className="text-xs text-blue-300 bg-gray-900 rounded-lg p-3 mt-2 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                <summary className="text-xs text-t4 cursor-pointer hover:text-t3 select-none">Last run — generated query</summary>
+                <pre className="text-xs text-accent bg-card2 rounded-lg p-3 mt-2 overflow-x-auto whitespace-pre-wrap leading-relaxed font-mono">
                   {agent.last_run_query}
                 </pre>
               </details>
@@ -517,7 +515,7 @@ function AgentCard({ agent, onRefresh, onEdit }) {
 function ApprovalsTab({ onCountChange, onApprovalChange }) {
   const [todos, setTodos]       = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [processing, setProcessing] = useState({}); // id -> 'approve'|'deny'
+  const [processing, setProcessing] = useState({});
   const [denyingId, setDenyingId]   = useState(null);
   const [denyReason, setDenyReason] = useState('');
 
@@ -545,7 +543,7 @@ function ApprovalsTab({ onCountChange, onApprovalChange }) {
       setDenyingId(null);
       setDenyReason('');
       onCountChange?.(todos.length - 1);
-      onApprovalChange?.(); // refresh notifications tab + navbar badge
+      onApprovalChange?.();
     } catch (err) {
       alert(`Failed: ${err.response?.data?.error || err.message}`);
     } finally {
@@ -553,49 +551,53 @@ function ApprovalsTab({ onCountChange, onApprovalChange }) {
     }
   };
 
-  if (loading) return <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>;
+  if (loading) return <div className="text-t3 text-sm py-8 text-center">Loading…</div>;
   if (todos.length === 0) return (
     <div className="text-center py-16">
-      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
-        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-card2 border border-border flex items-center justify-center">
+        <svg className="w-6 h-6 text-t4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <p className="text-gray-500 text-sm">No pending approvals</p>
+      <p className="text-t3 text-sm">No pending approvals</p>
     </div>
   );
 
   return (
     <div className="space-y-3">
       {todos.map(todo => (
-        <div key={todo.id} className="bg-gray-800 border border-yellow-700/30 rounded-xl overflow-hidden">
+        <div key={todo.id} className="bg-card border border-warn/30 rounded-xl overflow-hidden shadow-card">
           <div className="px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-700/40 rounded px-1.5 py-0.5">
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
+                    background: 'var(--amber-light)', color: 'var(--amber)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+                  }}>
                     {todo.agent_name}
                   </span>
-                  <span className="text-xs text-gray-500">{todo.action_tool}</span>
+                  <span className="text-xs text-t3">{todo.action_tool}</span>
                   {todo.record_type && (
-                    <span className="text-xs text-gray-600">{todo.record_type}</span>
+                    <span className="text-xs text-t4">{todo.record_type}</span>
                   )}
                 </div>
-                <p className="text-sm text-white leading-relaxed">{todo.description}</p>
-                <p className="text-xs text-gray-600 mt-1">{relativeTime(todo.created_at)}</p>
+                <p className="text-sm text-t1 leading-relaxed">{todo.description}</p>
+                <p className="text-xs text-t4 mt-1">{relativeTime(todo.created_at)}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => { setDenyingId(todo.id); setDenyReason(''); }}
                   disabled={!!processing[todo.id]}
-                  className="px-3 py-1.5 border border-gray-600 text-gray-400 hover:text-red-300 hover:border-red-700/60 rounded-lg text-sm transition-colors disabled:opacity-40"
+                  className="px-3 py-1.5 border border-border text-t2 hover:text-red-300 hover:border-red-700/60 rounded-lg text-sm transition-colors disabled:opacity-40"
                 >
                   Deny
                 </button>
                 <button
                   onClick={() => handle(todo.id, 'approve')}
                   disabled={!!processing[todo.id]}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-accent hover:bg-accent-mid text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5"
                 >
                   {processing[todo.id] === 'approve' ? (
                     <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
@@ -616,7 +618,7 @@ function ApprovalsTab({ onCountChange, onApprovalChange }) {
                   onChange={e => setDenyReason(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handle(todo.id, 'deny', denyReason)}
                   placeholder="Reason for denying (optional — helps agent learn)"
-                  className="flex-1 bg-gray-700 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-red-500"
+                  className="flex-1 bg-input border border-border text-t1 placeholder-t3 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-danger"
                 />
                 <button
                   onClick={() => handle(todo.id, 'deny', denyReason)}
@@ -625,13 +627,13 @@ function ApprovalsTab({ onCountChange, onApprovalChange }) {
                 >
                   {processing[todo.id] === 'deny' ? '…' : 'Confirm deny'}
                 </button>
-                <button onClick={() => setDenyingId(null)} className="text-xs text-gray-600 hover:text-gray-400">Cancel</button>
+                <button onClick={() => setDenyingId(null)} className="text-xs text-t3 hover:text-t2">Cancel</button>
               </div>
             )}
             {todo.action_tool !== 'flag' && (
               <details className="mt-3">
-                <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">View action details</summary>
-                <pre className="text-xs text-gray-400 mt-2 bg-gray-900 rounded p-2 overflow-x-auto">
+                <summary className="text-xs text-t4 cursor-pointer hover:text-t3 select-none">View action details</summary>
+                <pre className="text-xs text-t2 mt-2 bg-card2 rounded p-2 overflow-x-auto font-mono">
                   {JSON.stringify(todo.arguments, null, 2)}
                 </pre>
               </details>
@@ -668,10 +670,10 @@ function NotificationsTab({ onMarkRead, reloadSignal }) {
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  if (loading) return <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>;
+  if (loading) return <div className="text-t3 text-sm py-8 text-center">Loading…</div>;
   if (notifs.length === 0) return (
     <div className="text-center py-16">
-      <p className="text-gray-500 text-sm">No notifications yet</p>
+      <p className="text-t3 text-sm">No notifications yet</p>
     </div>
   );
 
@@ -679,7 +681,7 @@ function NotificationsTab({ onMarkRead, reloadSignal }) {
     <div>
       {unreadCount > 0 && (
         <div className="flex justify-end mb-3">
-          <button onClick={markAllRead} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+          <button onClick={markAllRead} className="text-xs text-t3 hover:text-t2 transition-colors">
             Mark all read
           </button>
         </div>
@@ -687,7 +689,7 @@ function NotificationsTab({ onMarkRead, reloadSignal }) {
       <div className="space-y-1">
         {notifs.map(n => (
           <div key={n.id} className={`flex items-start gap-3 px-4 py-3 rounded-lg transition-colors ${
-            n.read ? 'opacity-50' : 'bg-gray-800/60'
+            n.read ? 'opacity-50' : 'bg-card2'
           }`}>
             <span className={`text-sm flex-shrink-0 ${
               n.type === 'error'    ? 'text-red-400' :
@@ -696,13 +698,13 @@ function NotificationsTab({ onMarkRead, reloadSignal }) {
               'text-blue-400'
             }`}>{TYPE_ICON[n.type] ?? '•'}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-200">{n.message}</p>
+              <p className="text-sm text-t1">{n.message}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-gray-600">{n.agent_name}</span>
-                <span className="text-xs text-gray-700">{relativeTime(n.created_at)}</span>
+                <span className="text-xs text-t3">{n.agent_name}</span>
+                <span className="text-xs text-t4">{relativeTime(n.created_at)}</span>
               </div>
             </div>
-            {!n.read && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
+            {!n.read && <span className="w-2 h-2 rounded-full bg-accent mt-1.5 flex-shrink-0" />}
           </div>
         ))}
       </div>
@@ -722,37 +724,40 @@ function RunHistoryTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-gray-500 text-sm py-8 text-center">Loading…</div>;
+  if (loading) return <div className="text-t3 text-sm py-8 text-center">Loading…</div>;
   if (runs.length === 0) return (
     <div className="text-center py-16">
-      <p className="text-gray-500 text-sm">No runs yet</p>
+      <p className="text-t3 text-sm">No runs yet</p>
     </div>
   );
 
   return (
     <div className="space-y-2">
       {runs.map(run => (
-        <div key={run.id} className="flex items-start gap-3 px-4 py-3 bg-gray-800/40 border border-gray-700/50 rounded-lg">
+        <div key={run.id} className="flex items-start gap-3 px-4 py-3 bg-card border border-border rounded-lg">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-gray-200 font-medium">{run.agent_name}</span>
-              <span className={`text-xs px-1.5 py-0.5 rounded border ${STATUS_PILL[run.status] ?? STATUS_PILL.completed}`}>
+              <span className="text-sm text-t1 font-medium">{run.agent_name}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
+                ...(STATUS_PILL_STYLE[run.status] ?? STATUS_PILL_STYLE.completed)
+              }}>
                 {run.status}
               </span>
             </div>
             {run.plan_summary && (
-              <p className="text-xs text-gray-400 mt-0.5">{run.plan_summary}</p>
+              <p className="text-xs text-t2 mt-0.5">{run.plan_summary}</p>
             )}
             {run.error && (
               <p className="text-xs text-red-400 mt-0.5">{run.error}</p>
             )}
             <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <span className="text-xs text-gray-600">{relativeTime(run.started_at)}</span>
+              <span className="text-xs text-t4">{relativeTime(run.started_at)}</span>
               {run.records_found > 0 && (
-                <span className="text-xs text-gray-500">{run.records_found} record(s) found</span>
+                <span className="text-xs text-t3">{run.records_found} record(s) found</span>
               )}
               {run.actions_created > 0 && (
-                <span className="text-xs text-gray-500">{run.actions_created} action(s)</span>
+                <span className="text-xs text-t3">{run.actions_created} action(s)</span>
               )}
             </div>
           </div>
@@ -823,47 +828,45 @@ export function AutomationPage({ onApprovalChange }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-700 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Automation</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Scheduled agents that monitor and act on NetSuite data</p>
+      {/* Sub-header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-6" style={{ height: 44, borderBottom: '1px solid var(--border)' }}>
+          {/* Tabs — Linear underline style */}
+          <div className="flex">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                className={`auto-tab ${tab === t.id ? 'active' : ''}`}
+                onClick={() => { setTab(t.id); localStorage.setItem('automation_tab', t.id); setShowForm(false); setEditingAgent(null); }}
+              >
+                {t.label}
+                {t.badge > 0 && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700,
+                    background: 'var(--blue)', color: '#fff',
+                    minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
+
           {tab === 'agents' && !showForm && (
             <button
               onClick={() => { setEditingAgent(null); setShowForm(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="topbar-btn"
+              style={{ background: 'var(--blue)', color: '#fff', borderColor: 'var(--blue)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--blue-dark)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--blue)'; }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
               New Agent
             </button>
           )}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 mt-4">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => { setTab(t.id); localStorage.setItem('automation_tab', t.id); setShowForm(false); setEditingAgent(null); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                tab === t.id
-                  ? 'bg-gray-700 text-white font-medium'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              {t.label}
-              {t.badge > 0 && (
-                <span className="min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center leading-none">
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Body */}
@@ -874,8 +877,8 @@ export function AutomationPage({ onApprovalChange }) {
           {tab === 'agents' && (
             <>
               {showForm && (
-                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-5">
-                  <h3 className="text-sm font-semibold text-white mb-4">
+                <div className="bg-card border border-border rounded-xl p-5 mb-5 shadow-card">
+                  <h3 className="text-sm font-semibold text-t1 mb-4">
                     {editingAgent?.id ? 'Edit agent' : 'New agent'}
                   </h3>
                   <AgentForm
@@ -887,19 +890,19 @@ export function AutomationPage({ onApprovalChange }) {
               )}
 
               {loadingAgents ? (
-                <div className="text-gray-500 text-sm py-8 text-center">Loading agents…</div>
+                <div className="text-t3 text-sm py-8 text-center">Loading agents…</div>
               ) : agents.length === 0 && !showForm ? (
                 <div className="text-center py-20">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-card2 border border-border flex items-center justify-center">
+                    <svg className="w-6 h-6 text-t4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-gray-400 font-medium">No agents yet</p>
-                  <p className="text-gray-600 text-sm mt-1 mb-4">Create your first agent to start automating NetSuite workflows</p>
+                  <p className="text-t2 font-semibold">No agents yet</p>
+                  <p className="text-t3 text-sm mt-1 mb-4">Create your first agent to start automating NetSuite workflows</p>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+                    className="px-4 py-2 bg-accent hover:bg-accent-mid text-white text-sm rounded-lg transition-colors"
                   >
                     Create an agent
                   </button>
@@ -924,7 +927,6 @@ export function AutomationPage({ onApprovalChange }) {
             <ApprovalsTab
               onCountChange={count => {
                 setPendingCount(count);
-                loadCounts();
               }}
               onApprovalChange={() => {
                 loadCounts();

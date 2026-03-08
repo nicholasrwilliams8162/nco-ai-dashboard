@@ -339,3 +339,62 @@ design-system.html                  # Standalone design system reference (tokens
 - Agent multi-step workflows
 - Export dashboard as PDF/image
 - Billing / subscription gating per user (Stripe)
+
+---
+
+### Design System v4 — Enterprise UI (complete)
+
+Full visual overhaul targeting a modern enterprise SaaS aesthetic (Linear / Vercel / FinCorp style).
+
+**Font**
+- Switched from Manrope → **Plus Jakarta Sans** (rounder, crisper at small sizes)
+- Antialiasing changed to `subpixel-antialiased` — sharper rendering, less fuzzy
+- Removed `text-rendering: optimizeLegibility` (caused blur at small sizes)
+
+**Light mode redesign**
+- Dark navy sidebar (`#0E2255`) with white/muted-blue text — matches FinCorp reference
+- Light blue-gray page background (`#E8EFF8`) — distinctive, enterprise feel
+- White topbar and cards elevated above page background
+- Active nav indicator: white left border (visible against navy)
+- Sidebar hover: subtle white overlay
+
+**Sidebar**
+- New geometric "NCO" logo mark (N in rounded square SVG)
+- Stacked "NCO" / "Dashboard" wordmark, 28px mark
+- Left-border active indicator (Linear signature) — uses `--sidebar-text-active` color
+- CSS-driven hover states via `.sidebar-nav-btn` class
+- Theme toggle condensed to icon-only button in footer alongside UserButton
+
+**TopBar**
+- Removed fixed height — uses `padding: 20px 28px` for breathing room
+- 20px bold title + 13px muted subtitle
+- White background (`var(--card-bg)`) for visual elevation
+- `.topbar-btn` ghost button class for Refresh All
+
+**Widget cards**
+- 12px border-radius, 44px header
+- Drag dots icon (6-dot SVG) that fades in on card hover via CSS
+- `.widget-icon-btn` class with hover ring for action buttons
+- Dropdown menu items have mouse-enter/leave hover backgrounds
+
+**Automation tabs**
+- Linear-style underline indicator via `box-shadow: inset 0 -2px 0 var(--blue)` (no layout reflow / no flicker)
+- `.auto-tab` CSS class, `height: 44px` matches sub-header
+
+**Status badges**
+- All status pills (completed/running/failed/pending, success/error/reverted) now use CSS vars
+- `--green-light` / `--green`, `--red-light` / `--red`, `--amber-light` / `--amber`, `--blue-light` / `--blue`
+- Readable in both light and dark mode
+
+**CSS tokens**
+- Added `--blue-glow` for focus rings
+- Focus ring: `2px solid var(--blue)` + `box-shadow: 0 0 0 4px var(--blue-glow)`
+- Darker light mode `--text-3` / `--text-4` for readable muted text
+- `--sidebar-active-indicator` uses `--sidebar-text-active` (white in light, blue in dark)
+
+**Bug fixes**
+- Removed duplicate page headings from AgentPage and AutomationPage (TopBar is single source)
+- Settings panel no longer force-opens when not connected — users can freely browse all pages
+- Automation tab badge flicker fixed — removed redundant `loadCounts()` call inside `onCountChange`
+- Query bar background was `var(--sidebar-bg)` (dark navy) — fixed to `var(--card-bg)`
+- Form inputs / chips use `bg-card` (white) instead of `bg-input` which blended into page background

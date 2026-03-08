@@ -62,10 +62,13 @@ function IconMoon() {
     </svg>
   );
 }
+
+// NCO logo mark — geometric N in a rounded square
 function IconLogoMark() {
   return (
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="28" height="28" rx="7" fill="var(--blue)" />
+      <path d="M8 20V8l5.5 8V8M14.5 8v12M14.5 8L20 20V8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -82,78 +85,64 @@ const NAV_ITEMS = [
 
 function Sidebar({ activePage, setActivePage, onSettings, automationBadge, theme, onToggleTheme }) {
   return (
-    <aside
-      style={{
-        width: 220,
-        flexShrink: 0,
-        background: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--sidebar-divider)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 0',
-        height: '100%',
-      }}
-    >
+    <aside style={{
+      width: 216,
+      flexShrink: 0,
+      background: 'var(--sidebar-bg)',
+      borderRight: '1px solid var(--sidebar-divider)',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    }}>
       {/* Logo */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '0 20px 20px', borderBottom: '1px solid var(--sidebar-divider)',
-        marginBottom: 16,
+        height: 52,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '0 16px',
+        borderBottom: '1px solid var(--sidebar-divider)',
+        flexShrink: 0,
       }}>
-        <div style={{
-          width: 32, height: 32, background: 'var(--blue)',
-          borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <span style={{ width: 16, height: 16, color: '#fff', display: 'flex' }}>
-            <IconLogoMark />
-          </span>
+        <div style={{ width: 28, height: 28, flexShrink: 0 }}>
+          <IconLogoMark />
         </div>
-        <span style={{
-          fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-1)',
-        }}>
-          NCO Dashboard
-        </span>
+        <div style={{ lineHeight: 1.15 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-1)' }}>
+            NCO
+          </div>
+          <div style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-3)', letterSpacing: '0.01em' }}>
+            Dashboard
+          </div>
+        </div>
       </div>
 
-      {/* Nav section label */}
-      <span style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: 'var(--text-4)', padding: '0 20px', marginBottom: 6,
-      }}>
-        Pages
-      </span>
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: '10px 0' }}>
+        {/* Section label */}
+        <div style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
+          color: 'var(--text-4)', padding: '6px 18px 4px',
+        }}>
+          Pages
+        </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1 }}>
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const active = activePage === id;
           return (
             <button
               key={id}
+              className={`sidebar-nav-btn ${active ? 'active' : ''}`}
               onClick={() => { setActivePage(id); localStorage.setItem('active_page', id); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 20px', margin: '1px 10px',
-                borderRadius: 9, cursor: 'pointer', width: 'calc(100% - 20px)',
-                fontSize: 13.5, fontWeight: 600, letterSpacing: '-0.01em',
-                border: 'none', textAlign: 'left', transition: 'all 0.15s',
-                background: active ? 'var(--sidebar-active-bg)' : 'transparent',
-                color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
-                position: 'relative',
-              }}
             >
-              <span style={{
-                width: 16, height: 16, display: 'flex', flexShrink: 0,
-                color: active ? 'var(--sidebar-icon-active)' : 'var(--sidebar-icon)',
-              }}>
-                <Icon />
-              </span>
+              <span className="nav-icon"><Icon /></span>
               {label}
               {id === 'automation' && automationBadge > 0 && (
                 <span style={{
-                  marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+                  marginLeft: 'auto',
+                  fontSize: 10, fontWeight: 700,
                   background: 'var(--blue)', color: '#fff',
-                  minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                  minWidth: 17, height: 17, padding: '0 4px', borderRadius: 9,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {automationBadge}
@@ -163,74 +152,64 @@ function Sidebar({ activePage, setActivePage, onSettings, automationBadge, theme
           );
         })}
 
-        {/* Divider */}
-        <div style={{ height: 1, background: 'var(--sidebar-divider)', margin: '12px 20px' }} />
+        {/* Divider + Settings */}
+        <div style={{ height: 1, background: 'var(--sidebar-divider)', margin: '10px 0' }} />
 
-        {/* Settings */}
         <button
+          className="sidebar-nav-btn"
           onClick={onSettings}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '9px 20px', margin: '1px 10px',
-            borderRadius: 9, cursor: 'pointer', width: 'calc(100% - 20px)',
-            fontSize: 13.5, fontWeight: 600, letterSpacing: '-0.01em',
-            border: 'none', textAlign: 'left', transition: 'all 0.15s',
-            background: 'transparent',
-            color: 'var(--sidebar-text)',
-          }}
         >
-          <span style={{ width: 16, height: 16, display: 'flex', flexShrink: 0, color: 'var(--sidebar-icon)' }}>
-            <IconSettings />
-          </span>
+          <span className="nav-icon"><IconSettings /></span>
           Settings
         </button>
       </nav>
 
-      {/* Footer — theme toggle + user */}
+      {/* Footer */}
       <div style={{
         borderTop: '1px solid var(--sidebar-divider)',
-        padding: '16px 20px 0',
-        display: 'flex', flexDirection: 'column', gap: 12,
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
       }}>
-        {/* Theme toggle */}
+        <UserButton afterSignOutUrl="/" />
+
+        {/* Theme toggle — icon only */}
         <button
           onClick={onToggleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '7px 10px', borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'var(--card-bg-2)', cursor: 'pointer',
-            color: 'var(--text-2)', fontSize: 12.5, fontWeight: 600,
-            transition: 'all 0.15s',
-          }}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 30, height: 30, borderRadius: 7,
+            border: '1px solid var(--border)',
+            background: 'var(--card-bg-2)',
+            cursor: 'pointer',
+            color: 'var(--text-3)',
+            transition: 'all 0.12s',
+            flexShrink: 0,
+          }}
         >
-          <span style={{ width: 15, height: 15, display: 'flex' }}>
+          <span style={{ width: 14, height: 14, display: 'flex' }}>
             {theme === 'dark' ? <IconSun /> : <IconMoon />}
           </span>
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
         </button>
-
-        {/* User */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <UserButton afterSignOutUrl="/" />
-        </div>
       </div>
     </aside>
   );
 }
 
-// ─── Top bar (inside main content area) ──────────────────────────────────────
+// ─── Top bar ──────────────────────────────────────────────────────────────────
 
 function TopBar({ page, lastRefreshed, isRefreshing, onRefreshAll }) {
   const PAGE_TITLES = {
-    dashboard: 'Dashboard',
-    agent: 'Agent',
+    dashboard:  'Dashboard',
+    agent:      'Agent',
     automation: 'Automation',
   };
   const PAGE_SUBS = {
-    dashboard: 'Your NetSuite metrics at a glance',
-    agent: 'Natural language NetSuite operations',
+    dashboard:  'Your NetSuite metrics at a glance',
+    agent:      'Natural language record operations',
     automation: 'Scheduled agents and approvals',
   };
 
@@ -240,14 +219,22 @@ function TopBar({ page, lastRefreshed, isRefreshing, onRefreshAll }) {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '20px 28px 0', flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '20px 28px',
+      borderBottom: '1px solid var(--border)',
+      flexShrink: 0,
+      background: 'var(--card-bg)',
     }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-1)', margin: 0, lineHeight: 1.2 }}>
+        <h1 style={{
+          fontSize: 20, fontWeight: 700, letterSpacing: '-0.025em',
+          color: 'var(--text-1)', margin: 0, lineHeight: 1.2,
+        }}>
           {PAGE_TITLES[page]}
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--text-3)', margin: '3px 0 0', lineHeight: 1 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-3)', margin: '4px 0 0', lineHeight: 1 }}>
           {PAGE_SUBS[page]}
         </p>
       </div>
@@ -255,29 +242,23 @@ function TopBar({ page, lastRefreshed, isRefreshing, onRefreshAll }) {
       {page === 'dashboard' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {lastRefreshedStr && (
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-4)', letterSpacing: '-0.01em' }}>
               Updated {lastRefreshedStr}
             </span>
           )}
           {isRefreshing && (
-            <svg style={{ width: 14, height: 14, color: 'var(--blue)', animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
+            <svg style={{ width: 13, height: 13, color: 'var(--blue)', animation: 'spin 1s linear infinite' }}
+              fill="none" viewBox="0 0 24 24">
               <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           )}
           <button
+            className="topbar-btn"
             onClick={onRefreshAll}
             disabled={isRefreshing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', borderRadius: 9,
-              border: '1px solid var(--border)',
-              background: 'var(--card-bg)', cursor: 'pointer',
-              color: 'var(--text-2)', fontSize: 13, fontWeight: 600,
-              transition: 'all 0.15s', opacity: isRefreshing ? 0.5 : 1,
-            }}
           >
-            <span style={{ width: 14, height: 14, display: 'flex' }}><IconRefresh /></span>
+            <span style={{ width: 13, height: 13, display: 'flex' }}><IconRefresh /></span>
             Refresh All
           </button>
         </div>
@@ -304,7 +285,6 @@ export default function App() {
     () => localStorage.getItem('theme') || 'dark'
   );
 
-  // Apply theme to <html>
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -312,7 +292,6 @@ export default function App() {
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
-  // Poll for pending approvals badge
   const fetchCounts = useCallback(() => {
     fetch('/api/automation/notifications/unread-count')
       .then(r => r.ok ? r.json() : null)
@@ -342,17 +321,18 @@ export default function App() {
   return (
     <>
       <SignedOut>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--page-bg)' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100vh', background: 'var(--page-bg)',
+        }}>
           <SignIn routing="hash" />
         </div>
       </SignedOut>
 
       <SignedIn>
-        {/* Add spin keyframe */}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--page-bg)' }}>
-          {/* Sidebar */}
           <Sidebar
             activePage={activePage}
             setActivePage={setActivePage}
@@ -362,7 +342,6 @@ export default function App() {
             onToggleTheme={toggleTheme}
           />
 
-          {/* Main content */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             <TopBar
               page={activePage}
@@ -371,13 +350,12 @@ export default function App() {
               onRefreshAll={refreshAll}
             />
 
-            {/* Page body */}
             {activePage === 'dashboard' ? (
               <>
-                <main style={{ flex: 1, overflow: 'auto', padding: '16px 28px 0' }}>
+                <main style={{ flex: 1, overflow: 'auto', padding: '16px 24px 0' }}>
                   {isLoading ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: 'var(--text-3)' }}>
-                      <svg style={{ width: 20, height: 20, marginRight: 8, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: 'var(--text-3)', fontSize: 13 }}>
+                      <svg style={{ width: 16, height: 16, marginRight: 8, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
                         <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
@@ -401,10 +379,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* Settings panel */}
-        {(!authStatus.connected || showSettings) && (
+        {showSettings && (
           <SettingsPanel
-            onClose={authStatus.connected ? () => setShowSettings(false) : null}
+            onClose={() => setShowSettings(false)}
             initialError={authError}
           />
         )}

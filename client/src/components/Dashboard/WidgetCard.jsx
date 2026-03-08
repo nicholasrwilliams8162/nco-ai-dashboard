@@ -116,30 +116,29 @@ export function WidgetCard({ widget, isMobile = false }) {
     : null;
 
   return (
-    <div style={{
+    <div className="widget-card" style={{
       display: 'flex', flexDirection: 'column',
       background: 'var(--card-bg)',
-      borderRadius: 14,
+      borderRadius: 12,
       border: '1px solid var(--border)',
       boxShadow: 'var(--shadow-card)',
       height: '100%',
       overflow: 'hidden',
-      transition: 'box-shadow 0.2s',
     }}>
       {/* Header */}
-      <div style={{
+      <div className="widget-card-header" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 18px',
+        padding: '10px 14px',
         borderBottom: '1px solid var(--border-soft)',
-        flexShrink: 0, minHeight: 48,
+        flexShrink: 0, minHeight: 44,
       }}>
         {isEditing ? (
           <input
             style={{
               background: 'var(--input-bg)', color: 'var(--text-1)',
-              border: '1.5px solid var(--blue)', borderRadius: 7,
-              padding: '4px 10px', flex: 1, marginRight: 8, outline: 'none',
-              fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+              border: '1.5px solid var(--blue)', borderRadius: 6,
+              padding: '3px 9px', flex: 1, marginRight: 8, outline: 'none',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
             }}
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
@@ -148,43 +147,50 @@ export function WidgetCard({ widget, isMobile = false }) {
             autoFocus
           />
         ) : (
-          <h3
-            className={`drag-handle ${isMobile ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
-            style={{
-              fontSize: 14, fontWeight: 700, letterSpacing: '-0.015em',
-              color: 'var(--text-1)', margin: 0, overflow: 'hidden',
-              whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1,
-              transition: 'color 0.15s',
-            }}
-            onDoubleClick={() => { if (!isMobile) setIsEditing(true); }}
-            onTouchEnd={() => { if (isMobile) setIsEditing(true); }}
-            title={isMobile ? undefined : 'Double-click to rename'}
-          >
-            {widget.title}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+            {/* Drag dots — visible on hover via CSS */}
+            {!isMobile && (
+              <span className="drag-dots drag-handle" style={{ color: 'var(--text-4)', lineHeight: 1, userSelect: 'none' }}>
+                <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+                  <circle cx="2" cy="2" r="1.5" /><circle cx="6" cy="2" r="1.5" />
+                  <circle cx="2" cy="7" r="1.5" /><circle cx="6" cy="7" r="1.5" />
+                  <circle cx="2" cy="12" r="1.5" /><circle cx="6" cy="12" r="1.5" />
+                </svg>
+              </span>
+            )}
+            <h3
+              className={`drag-handle ${isMobile ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+              style={{
+                fontSize: 13, fontWeight: 700, letterSpacing: '-0.015em',
+                color: 'var(--text-1)', margin: 0, overflow: 'hidden',
+                whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+              }}
+              onDoubleClick={() => { if (!isMobile) setIsEditing(true); }}
+              onTouchEnd={() => { if (isMobile) setIsEditing(true); }}
+              title={isMobile ? undefined : 'Double-click to rename'}
+            >
+              {widget.title}
+            </h3>
+          </div>
         )}
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 8, flexShrink: 0 }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: 6, flexShrink: 0 }}
           onMouseDown={e => e.stopPropagation()}>
           {cachedAt && (
-            <span style={{ fontSize: 11, color: 'var(--text-4)', marginRight: 4, display: 'none' }}
+            <span style={{ fontSize: 10.5, color: 'var(--text-4)', marginRight: 4, display: 'none' }}
               className="sm:block">{cachedAt}</span>
           )}
 
           {/* Refresh */}
           <button
+            className="widget-icon-btn"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 30, height: 30, border: 'none', background: 'transparent',
-              cursor: 'pointer', borderRadius: 7, color: 'var(--text-3)',
-              transition: 'all 0.15s', opacity: isRefreshing ? 0.5 : 1,
-            }}
+            style={{ opacity: isRefreshing ? 0.5 : 1 }}
             title="Refresh data"
           >
-            <svg style={{ width: 14, height: 14, animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}
+            <svg style={{ width: 13, height: 13, animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}
               fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -195,14 +201,9 @@ export function WidgetCard({ widget, isMobile = false }) {
           <div style={{ position: 'relative' }} ref={settingsRef}>
             <button
               ref={triggerRef}
+              className="widget-icon-btn"
               onClick={handleSettingsToggle}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 30, height: 30, border: 'none',
-                background: showSettings ? 'var(--card-bg-2)' : 'transparent',
-                cursor: 'pointer', borderRadius: 7, color: 'var(--text-3)',
-                transition: 'all 0.15s',
-              }}
+              style={{ background: showSettings ? 'var(--card-bg-2)' : undefined }}
               title="Widget settings"
             >
               <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24">
@@ -214,14 +215,14 @@ export function WidgetCard({ widget, isMobile = false }) {
 
             {showSettings && (
               <div style={{
-                position: 'absolute', top: 'calc(100% + 4px)', zIndex: 50,
-                width: 196, padding: 12,
+                position: 'absolute', top: 'calc(100% + 6px)', zIndex: 50,
+                width: 192, padding: 10,
                 background: 'var(--card-bg)', border: '1px solid var(--border)',
-                borderRadius: 12, boxShadow: 'var(--shadow-modal)',
+                borderRadius: 10, boxShadow: 'var(--shadow-modal)',
                 ...(dropdownAlignLeft ? { left: 0 } : { right: 0 }),
               }}>
                 {/* Chart type */}
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-4)', marginBottom: 7 }}>
                   Chart type
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 12 }}>
@@ -247,7 +248,7 @@ export function WidgetCard({ widget, isMobile = false }) {
                 {/* Width — desktop only */}
                 {!isMobile && (
                   <>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
+                    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-4)', marginBottom: 7 }}>
                       Width
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 12 }}>
@@ -270,18 +271,20 @@ export function WidgetCard({ widget, isMobile = false }) {
                 )}
 
                 {/* Divider + actions */}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 2 }}>
                   <button
                     onClick={() => { setShowInfo(v => !v); setShowSettings(false); }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      width: '100%', padding: '7px 8px', borderRadius: 7,
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      width: '100%', padding: '6px 7px', borderRadius: 6,
                       border: 'none', background: 'transparent', cursor: 'pointer',
-                      fontSize: 12.5, color: 'var(--text-2)', textAlign: 'left',
-                      transition: 'all 0.15s', fontFamily: 'inherit',
+                      fontSize: 12, color: 'var(--text-2)', textAlign: 'left',
+                      transition: 'background 0.12s, color 0.12s', fontFamily: 'inherit',
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-bg-2)'; e.currentTarget.style.color = 'var(--text-1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-2)'; }}
                   >
-                    <svg style={{ width: 13, height: 13, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: 12, height: 12, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {showInfo ? 'Hide query info' : 'Show query info'}
@@ -289,14 +292,16 @@ export function WidgetCard({ widget, isMobile = false }) {
                   <button
                     onClick={() => removeWidget(widget.id)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      width: '100%', padding: '7px 8px', borderRadius: 7,
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      width: '100%', padding: '6px 7px', borderRadius: 6,
                       border: 'none', background: 'transparent', cursor: 'pointer',
-                      fontSize: 12.5, color: 'var(--red)', textAlign: 'left',
-                      transition: 'all 0.15s', fontFamily: 'inherit',
+                      fontSize: 12, color: 'var(--red)', textAlign: 'left',
+                      transition: 'background 0.12s', fontFamily: 'inherit',
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--red-light)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <svg style={{ width: 13, height: 13, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: 12, height: 12, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Remove widget
@@ -311,27 +316,27 @@ export function WidgetCard({ widget, isMobile = false }) {
       {/* Info panel */}
       {showInfo && (
         <div style={{
-          padding: '10px 18px', borderBottom: '1px solid var(--border-soft)',
+          padding: '9px 14px', borderBottom: '1px solid var(--border-soft)',
           background: 'var(--card-bg-2)', flexShrink: 0,
         }}>
           {widget.original_question && (
-            <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>
+            <p style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 2, lineHeight: 1.4 }}>
               <span style={{ color: 'var(--text-4)' }}>Q: </span>{widget.original_question}
             </p>
           )}
           {widget.interpretation && (
-            <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>
+            <p style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 2, lineHeight: 1.4 }}>
               <span style={{ color: 'var(--text-4)' }}>AI: </span>{widget.interpretation}
             </p>
           )}
-          <p style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: 'var(--text-4)', wordBreak: 'break-all', marginTop: 4 }}>
+          <p style={{ fontSize: 10.5, fontFamily: 'DM Mono, monospace', color: 'var(--text-4)', wordBreak: 'break-all', marginTop: 4, lineHeight: 1.5 }}>
             {widget.suiteql_query}
           </p>
         </div>
       )}
 
       {/* Chart area */}
-      <div style={{ flex: 1, padding: 12, minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, padding: 10, minHeight: 0, overflow: 'hidden' }}>
         <WidgetRenderer widget={widget} />
       </div>
     </div>

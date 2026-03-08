@@ -56,7 +56,7 @@ export function NaturalLanguageInput() {
   return (
     <div style={{
       borderTop: '1px solid var(--border)',
-      background: 'var(--sidebar-bg)',
+      background: 'var(--card-bg)',
       flexShrink: 0,
     }}>
       {/* Successful result preview */}

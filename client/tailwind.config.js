@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['DM Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
