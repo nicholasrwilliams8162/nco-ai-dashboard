@@ -398,3 +398,21 @@ Full visual overhaul targeting a modern enterprise SaaS aesthetic (Linear / Verc
 - Automation tab badge flicker fixed — removed redundant `loadCounts()` call inside `onCountChange`
 - Query bar background was `var(--sidebar-bg)` (dark navy) — fixed to `var(--card-bg)`
 - Form inputs / chips use `bg-card` (white) instead of `bg-input` which blended into page background
+
+### Design System v4.1 — Activity tab & badge polish (complete)
+
+**Activity (Notifications) tab**
+- Switched from opacity-wash read/unread to card-per-row layout matching Run History tab
+- Each notification is a white card (`bg-card`, `border-border`, `rounded-lg`, `space-y-2`)
+- Read items show with dimmed text (`--text-3`), unread show full `--text-1` + blue dot indicator
+- Icon colors use CSS vars (`--green`, `--red`, `--amber`, `--blue`) — theme-aware in both modes
+
+**Agent status badges**
+- "Disabled", "Approval required", "Auto-execute" badges migrated from hardcoded dark-mode Tailwind classes to CSS vars
+- "Auto-execute" changed to green (`--green-light` / `--green`) for clearer positive signal
+- "Approval required" uses blue (`--blue-light` / `--blue`)
+- "Disabled" uses neutral gray (`--card-bg-2` / `--text-3`)
+
+**Electron app**
+- Identified and documented port 3001 conflict (dev server vs packaged server) — must kill dev server before launching installed app
+- Build/install flow: `npm run electron:dist` → mount DMG → copy to `/Applications` → launch

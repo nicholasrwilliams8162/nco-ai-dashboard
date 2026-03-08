@@ -327,12 +327,18 @@ function AgentCard({ agent, onRefresh, onEdit }) {
                 }}>Paused</span>
               )}
               {!agent.enabled && (
-                <span className="text-xs text-t3 bg-card2 border border-border rounded px-1.5 py-0.5">Disabled</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                  background: 'var(--card-bg-2)', color: 'var(--text-3)',
+                  border: '1px solid var(--border)' }}>Disabled</span>
               )}
               {agent.require_approval ? (
-                <span className="text-xs text-blue-400 bg-blue-900/20 border border-blue-700/30 rounded px-1.5 py-0.5">Approval required</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                  background: 'var(--blue-light)', color: 'var(--blue)',
+                  border: '1px solid color-mix(in srgb, var(--blue) 30%, transparent)' }}>Approval required</span>
               ) : (
-                <span className="text-xs text-purple-400 bg-purple-900/20 border border-purple-700/30 rounded px-1.5 py-0.5">Auto-execute</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                  background: 'var(--green-light)', color: 'var(--green)',
+                  border: '1px solid color-mix(in srgb, var(--green) 30%, transparent)' }}>Auto-execute</span>
               )}
             </div>
 
@@ -686,25 +692,24 @@ function NotificationsTab({ onMarkRead, reloadSignal }) {
           </button>
         </div>
       )}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {notifs.map(n => (
-          <div key={n.id} className={`flex items-start gap-3 px-4 py-3 rounded-lg transition-colors ${
-            n.read ? 'opacity-50' : 'bg-card2'
-          }`}>
-            <span className={`text-sm flex-shrink-0 ${
-              n.type === 'error'    ? 'text-red-400' :
-              n.type === 'flag'     ? 'text-yellow-400' :
-              n.type === 'action'   ? 'text-green-400' :
-              'text-blue-400'
-            }`}>{TYPE_ICON[n.type] ?? '•'}</span>
+          <div key={n.id} className="flex items-start gap-3 px-4 py-3 bg-card border border-border rounded-lg">
+            <span style={{
+              fontSize: 13, flexShrink: 0, marginTop: 2,
+              color: n.type === 'error'  ? 'var(--red)'   :
+                     n.type === 'flag'   ? 'var(--amber)'  :
+                     n.type === 'action' ? 'var(--green)'  :
+                     'var(--blue)',
+            }}>{TYPE_ICON[n.type] ?? '•'}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-t1">{n.message}</p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <p style={{ fontSize: 13, color: n.read ? 'var(--text-3)' : 'var(--text-1)', margin: 0, lineHeight: 1.45 }}>{n.message}</p>
+              <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-t3">{n.agent_name}</span>
                 <span className="text-xs text-t4">{relativeTime(n.created_at)}</span>
               </div>
             </div>
-            {!n.read && <span className="w-2 h-2 rounded-full bg-accent mt-1.5 flex-shrink-0" />}
+            {!n.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--blue)', flexShrink: 0, marginTop: 5 }} />}
           </div>
         ))}
       </div>
