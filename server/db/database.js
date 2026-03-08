@@ -156,5 +156,49 @@ if (!tokenColumns.includes('client_id')) {
 if (!tokenColumns.includes('client_secret')) {
   db.exec("ALTER TABLE netsuite_tokens ADD COLUMN client_secret TEXT NOT NULL DEFAULT ''");
 }
+if (!tokenColumns.includes('user_id')) {
+  db.exec("ALTER TABLE netsuite_tokens ADD COLUMN user_id TEXT");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_netsuite_tokens_user_id ON netsuite_tokens(user_id)");
+}
+
+// Migrate: add user_id to oauth_pending
+const opCols = db.pragma('table_info(oauth_pending)').map(c => c.name);
+if (!opCols.includes('user_id')) {
+  db.exec("ALTER TABLE oauth_pending ADD COLUMN user_id TEXT");
+}
+
+// Migrate: add user_id to dashboards
+const dashboardCols = db.pragma('table_info(dashboards)').map(c => c.name);
+if (!dashboardCols.includes('user_id')) {
+  db.exec("ALTER TABLE dashboards ADD COLUMN user_id TEXT");
+}
+
+// Migrate: add user_id to query_history
+const qhCols = db.pragma('table_info(query_history)').map(c => c.name);
+if (!qhCols.includes('user_id')) {
+  db.exec("ALTER TABLE query_history ADD COLUMN user_id TEXT");
+}
+
+// Migrate: add user_id to agent_history
+const ahCols2 = db.pragma('table_info(agent_history)').map(c => c.name);
+if (!ahCols2.includes('user_id')) {
+  db.exec("ALTER TABLE agent_history ADD COLUMN user_id TEXT");
+}
+
+// Migrate: add user_id to autonomous_agents
+const aaCols = db.pragma('table_info(autonomous_agents)').map(c => c.name);
+if (!aaCols.includes('user_id')) {
+  db.exec("ALTER TABLE autonomous_agents ADD COLUMN user_id TEXT");
+}
+
+// Per-user settings (Groq API key etc.) — separate from global app_settings
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT NOT NULL,
+    key     TEXT NOT NULL,
+    value   TEXT NOT NULL,
+    PRIMARY KEY (user_id, key)
+  )
+`);
 
 export default db;

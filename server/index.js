@@ -5,12 +5,14 @@ import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
+import { clerkMiddleware } from '@clerk/express';
 import aiRoutes from './routes/ai.js';
 import agentRoutes from './routes/agent.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import netsuiteRoutes from './routes/netsuite.js';
 import automationRoutes from './routes/autonomousAgents.js';
+import { requireClerkAuth } from './middleware/auth.js';
 import { initScheduler } from './services/schedulerService.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +28,7 @@ if (!isProd) {
 
 if (isProd) app.set('trust proxy', 1);
 
+app.use(clerkMiddleware());
 app.use(express.json({ limit: '2mb' }));
 app.use(
   session({
@@ -39,13 +42,13 @@ app.use(
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-// Routes
-app.use('/api/ai', aiRoutes);
-app.use('/api/agent', agentRoutes);
+// Routes — auth callback is public (redirect from NetSuite, no Clerk session)
 app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/netsuite', netsuiteRoutes);
-app.use('/api/automation', automationRoutes);
+app.use('/api/ai', requireClerkAuth, aiRoutes);
+app.use('/api/agent', requireClerkAuth, agentRoutes);
+app.use('/api/dashboard', requireClerkAuth, dashboardRoutes);
+app.use('/api/netsuite', requireClerkAuth, netsuiteRoutes);
+app.use('/api/automation', requireClerkAuth, automationRoutes);
 
 // Serve React build in production
 if (isProd) {

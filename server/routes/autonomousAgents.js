@@ -16,8 +16,9 @@ router.get('/agents', (req, res) => {
       (SELECT status   FROM agent_runs  WHERE agent_id = a.id ORDER BY started_at DESC LIMIT 1) AS last_run_status,
       (SELECT query    FROM agent_runs  WHERE agent_id = a.id ORDER BY started_at DESC LIMIT 1) AS last_run_query
     FROM autonomous_agents a
+    WHERE a.user_id = ?
     ORDER BY a.created_at DESC
-  `).all();
+  `).all(req.userId);
   res.json(agents);
 });
 
@@ -29,8 +30,8 @@ router.post('/agents', (req, res) => {
   }
 
   const result = db.prepare(`
-    INSERT INTO autonomous_agents (name, description, instructions, schedule, require_approval, notification_frequency)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO autonomous_agents (name, description, instructions, schedule, require_approval, notification_frequency, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     name.trim(),
     description?.trim() || null,
@@ -38,6 +39,7 @@ router.post('/agents', (req, res) => {
     schedule.trim(),
     require_approval ? 1 : 0,
     notification_frequency || 'immediate',
+    req.userId,
   );
 
   const agent = db.prepare('SELECT * FROM autonomous_agents WHERE id = ?').get(result.lastInsertRowid);
@@ -187,8 +189,16 @@ router.get('/notifications', (req, res) => {
 
 // GET /api/automation/notifications/unread-count
 router.get('/notifications/unread-count', (req, res) => {
-  const row = db.prepare(`SELECT COUNT(*) AS count FROM agent_notifications WHERE read = 0`).get();
-  const pendingRow = db.prepare(`SELECT COUNT(*) AS count FROM agent_todos WHERE status = 'pending'`).get();
+  const row = db.prepare(`
+    SELECT COUNT(*) AS count FROM agent_notifications n
+    JOIN autonomous_agents a ON a.id = n.agent_id
+    WHERE n.read = 0 AND a.user_id = ?
+  `).get(req.userId);
+  const pendingRow = db.prepare(`
+    SELECT COUNT(*) AS count FROM agent_todos t
+    JOIN autonomous_agents a ON a.id = t.agent_id
+    WHERE t.status = 'pending' AND a.user_id = ?
+  `).get(req.userId);
   res.json({ unread: row.count, pending: pendingRow.count });
 });
 

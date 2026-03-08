@@ -11,8 +11,10 @@ function getTokenUrl(accountId) {
   return `https://${accountIdForUrl}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`;
 }
 
-export async function getValidToken() {
-  const row = db.prepare('SELECT * FROM netsuite_tokens WHERE id = 1').get();
+export async function getValidToken(userId) {
+  const row = userId
+    ? db.prepare('SELECT * FROM netsuite_tokens WHERE user_id = ?').get(userId)
+    : db.prepare('SELECT * FROM netsuite_tokens WHERE id = 1').get();
 
   if (!row) {
     throw new Error('Not connected to NetSuite. Please connect in Settings.');
@@ -44,11 +46,19 @@ export async function getValidToken() {
     const { access_token, refresh_token, expires_in, scope } = response.data;
     const newExpiresAt = nowSecs + (expires_in || 3600);
 
-    db.prepare(`
-      UPDATE netsuite_tokens
-      SET access_token = ?, refresh_token = ?, expires_at = ?, scope = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
-    `).run(access_token, refresh_token || row.refresh_token, newExpiresAt, scope || row.scope);
+    if (userId) {
+      db.prepare(`
+        UPDATE netsuite_tokens
+        SET access_token = ?, refresh_token = ?, expires_at = ?, scope = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+      `).run(access_token, refresh_token || row.refresh_token, newExpiresAt, scope || row.scope, userId);
+    } else {
+      db.prepare(`
+        UPDATE netsuite_tokens
+        SET access_token = ?, refresh_token = ?, expires_at = ?, scope = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `).run(access_token, refresh_token || row.refresh_token, newExpiresAt, scope || row.scope);
+    }
 
     return { ...row, access_token, expires_at: newExpiresAt };
   }
@@ -117,7 +127,7 @@ function sanitizeSuiteQL(query) {
   return rewriteItemJoin(query);
 }
 
-export async function runSuiteQL(query, { limit = 500, offset = 0 } = {}) {
+export async function runSuiteQL(query, { limit = 500, offset = 0, userId } = {}) {
   console.log('[SuiteQL] Raw query from AI:\n', query);
   const sanitized = sanitizeSuiteQL(query);
   if (sanitized !== query) {
@@ -125,7 +135,7 @@ export async function runSuiteQL(query, { limit = 500, offset = 0 } = {}) {
   } else {
     console.log('[SuiteQL] No corrections needed, sending as-is.');
   }
-  const token = await getValidToken();
+  const token = await getValidToken(userId);
   const baseUrl = getBaseUrl(token.account_id);
   const url = `${baseUrl}/query/v1/suiteql?limit=${limit}&offset=${offset}`;
 

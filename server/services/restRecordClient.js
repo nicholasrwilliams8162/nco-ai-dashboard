@@ -44,8 +44,8 @@ async function withRetry(fn) {
   }
 }
 
-export async function createRecord(recordType, values) {
-  const token = await getValidToken();
+export async function createRecord(recordType, values, userId) {
+  const token = await getValidToken(userId);
   const url = `${getRecordBase(token.account_id)}/${recordType}`;
   console.log(`[REST] POST ${url}`, values);
 
@@ -70,8 +70,8 @@ export async function createRecord(recordType, values) {
   }
 }
 
-export async function updateRecord(recordType, id, values) {
-  const token = await getValidToken();
+export async function updateRecord(recordType, id, values, userId) {
+  const token = await getValidToken(userId);
   const base = getRecordBase(token.account_id);
   const url = `${base}/${recordType}/${id}`;
   const headers = { Authorization: `Bearer ${token.access_token}` };
@@ -111,8 +111,8 @@ export async function updateRecord(recordType, id, values) {
   };
 }
 
-export async function getRecord(recordType, id, fields = []) {
-  const token = await getValidToken();
+export async function getRecord(recordType, id, fields = [], userId) {
+  const token = await getValidToken(userId);
   const params = fields.length ? `?fields=${fields.join(',')}` : '';
   const url = `${getRecordBase(token.account_id)}/${recordType}/${id}${params}`;
   console.log(`[REST] GET ${url}`);

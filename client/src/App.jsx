@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SignIn, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import { useDashboardStore } from './store/dashboardStore';
 import { DashboardGrid } from './components/Dashboard/DashboardGrid';
 import { NaturalLanguageInput } from './components/QueryBar/NaturalLanguageInput';
@@ -59,6 +60,13 @@ export default function App() {
     : null;
 
   return (
+    <>
+      <SignedOut>
+        <div className="flex items-center justify-center h-screen bg-gray-900">
+          <SignIn routing="hash" />
+        </div>
+      </SignedOut>
+      <SignedIn>
     <div className="flex flex-col h-screen bg-gray-900 text-white overflow-hidden">
       {/* Navbar — min-height 52px on mobile (safe touch area), 56px on desktop */}
       <header className="flex items-center justify-between px-3 sm:px-6 border-b border-gray-700 flex-shrink-0 min-h-[52px] sm:min-h-[56px]">
@@ -149,6 +157,9 @@ export default function App() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
+
+          {/* User avatar / sign out */}
+          <UserButton afterSignOutUrl="/" />
         </div>
       </header>
 
@@ -188,5 +199,7 @@ export default function App() {
         />
       )}
     </div>
+      </SignedIn>
+    </>
   );
 }

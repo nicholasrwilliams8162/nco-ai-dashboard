@@ -7,11 +7,21 @@ import { refreshWidgetData } from '../services/aiService.js';
 const router = express.Router();
 const limit = pLimit(5); // max 5 concurrent NetSuite calls
 
+function getUserDashboardId(userId) {
+  const existing = db.prepare('SELECT id FROM dashboards WHERE user_id = ?').get(userId);
+  if (existing) return existing.id;
+  const result = db.prepare(
+    "INSERT INTO dashboards (name, user_id) VALUES ('My Dashboard', ?)"
+  ).run(userId);
+  return result.lastInsertRowid;
+}
+
 // GET /api/dashboard/widgets
 router.get('/widgets', (req, res) => {
+  const dashboardId = getUserDashboardId(req.userId);
   const widgets = db.prepare(`
-    SELECT * FROM widgets WHERE dashboard_id = 1 ORDER BY grid_y, grid_x
-  `).all();
+    SELECT * FROM widgets WHERE dashboard_id = ? ORDER BY grid_y, grid_x
+  `).all(dashboardId);
 
   const parsed = widgets.map(w => ({
     ...w,
@@ -33,13 +43,13 @@ router.post('/widgets', (req, res) => {
     return res.status(400).json({ error: 'title, visualization_type, and suiteql_query are required' });
   }
 
+  const dashboardId = getUserDashboardId(req.userId);
   const id = uuidv4();
   const now = new Date().toISOString();
 
-  // Find the next available row for grid placement
   const lastWidget = db.prepare(`
-    SELECT MAX(grid_y + grid_h) AS next_y FROM widgets WHERE dashboard_id = 1
-  `).get();
+    SELECT MAX(grid_y + grid_h) AS next_y FROM widgets WHERE dashboard_id = ?
+  `).get(dashboardId);
   const nextY = lastWidget?.next_y || 0;
 
   db.prepare(`
@@ -47,9 +57,9 @@ router.post('/widgets', (req, res) => {
       id, dashboard_id, title, visualization_type, suiteql_query,
       visualization_config, original_question, interpretation,
       cached_data, cached_at, refresh_interval, grid_x, grid_y, grid_w, grid_h
-    ) VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 12, 4)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 12, 4)
   `).run(
-    id, title, visualization_type, suiteql_query,
+    id, dashboardId, title, visualization_type, suiteql_query,
     JSON.stringify(visualization_config || {}),
     original_question || null,
     interpretation || null,
@@ -64,7 +74,8 @@ router.post('/widgets', (req, res) => {
 
 // DELETE /api/dashboard/widgets/:id
 router.delete('/widgets/:id', (req, res) => {
-  const info = db.prepare('DELETE FROM widgets WHERE id = ?').run(req.params.id);
+  const dashboardId = getUserDashboardId(req.userId);
+  const info = db.prepare('DELETE FROM widgets WHERE id = ? AND dashboard_id = ?').run(req.params.id, dashboardId);
   if (info.changes === 0) return res.status(404).json({ error: 'Widget not found' });
   res.json({ success: true });
 });
@@ -105,7 +116,7 @@ router.post('/widgets/:id/refresh', async (req, res) => {
   if (!widget) return res.status(404).json({ error: 'Widget not found' });
 
   try {
-    const result = await refreshWidgetData(widget.suiteql_query);
+    const result = await refreshWidgetData(widget.suiteql_query, req.userId);
     db.prepare(`
       UPDATE widgets SET cached_data = ?, cached_at = ? WHERE id = ?
     `).run(JSON.stringify(result.data), result.refreshedAt, req.params.id);
@@ -117,12 +128,13 @@ router.post('/widgets/:id/refresh', async (req, res) => {
 
 // POST /api/dashboard/refresh-all — refresh all widgets
 router.post('/refresh-all', async (req, res) => {
-  const widgets = db.prepare('SELECT id, suiteql_query FROM widgets WHERE dashboard_id = 1').all();
+  const dashboardId = getUserDashboardId(req.userId);
+  const widgets = db.prepare('SELECT id, suiteql_query FROM widgets WHERE dashboard_id = ?').all(dashboardId);
 
   const results = await Promise.allSettled(
     widgets.map(w =>
       limit(async () => {
-        const result = await refreshWidgetData(w.suiteql_query);
+        const result = await refreshWidgetData(w.suiteql_query, req.userId);
         db.prepare(`
           UPDATE widgets SET cached_data = ?, cached_at = ? WHERE id = ?
         `).run(JSON.stringify(result.data), result.refreshedAt, w.id);
@@ -143,8 +155,9 @@ router.post('/refresh-all', async (req, res) => {
 
 // GET /api/dashboard/info
 router.get('/info', (req, res) => {
-  const dashboard = db.prepare('SELECT * FROM dashboards WHERE id = 1').get();
-  const count = db.prepare('SELECT COUNT(*) as count FROM widgets WHERE dashboard_id = 1').get();
+  const dashboardId = getUserDashboardId(req.userId);
+  const dashboard = db.prepare('SELECT * FROM dashboards WHERE id = ?').get(dashboardId);
+  const count = db.prepare('SELECT COUNT(*) as count FROM widgets WHERE dashboard_id = ?').get(dashboardId);
   res.json({ ...dashboard, widgetCount: count.count });
 });
 
@@ -152,7 +165,8 @@ router.get('/info', (req, res) => {
 router.patch('/info', (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name is required' });
-  db.prepare('UPDATE dashboards SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(name);
+  const dashboardId = getUserDashboardId(req.userId);
+  db.prepare('UPDATE dashboards SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(name, dashboardId);
   res.json({ success: true });
 });
 

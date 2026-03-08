@@ -3,8 +3,10 @@ import { buildSchemaContext } from './schemaContext.js';
 import { runSuiteQL } from './netsuiteClient.js';
 import db from '../db/database.js';
 
-function getGroqClient() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
+function getGroqClient(userId) {
+  const row = userId
+    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").get(userId)
+    : db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
   const apiKey = row?.value || process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error('Groq API key is not configured. Add it in Settings.');
@@ -83,8 +85,8 @@ async function callGroq(client, systemPrompt, messages) {
   return response.choices[0].message.content;
 }
 
-export async function processNaturalLanguageQuery(userQuestion) {
-  const client = getGroqClient();
+export async function processNaturalLanguageQuery(userQuestion, userId) {
+  const client = getGroqClient(userId);
   const systemPrompt = buildSystemPrompt(userQuestion);
   const messages = [{ role: 'user', content: userQuestion }];
 
@@ -100,7 +102,7 @@ export async function processNaturalLanguageQuery(userQuestion) {
   console.log("[AI] Generated query:", aiResult.query);
   let queryResult;
   try {
-    queryResult = await runSuiteQL(aiResult.query);
+    queryResult = await runSuiteQL(aiResult.query, { userId });
     console.log("[AI] Query returned", queryResult.items?.length, "rows");
   } catch (nsError) {
     // Step 3: Self-correction pass
@@ -112,7 +114,7 @@ export async function processNaturalLanguageQuery(userQuestion) {
     const correctionText = await callGroq(client, systemPrompt, correctionMessages);
     aiResult = parseAiJson(correctionText);
     if (!aiResult.query) throw new Error(`Could not generate a valid query: ${nsError.message}`);
-    queryResult = await runSuiteQL(aiResult.query);
+    queryResult = await runSuiteQL(aiResult.query, { userId });
   }
 
   return {
@@ -126,8 +128,8 @@ export async function processNaturalLanguageQuery(userQuestion) {
   };
 }
 
-export async function refreshWidgetData(savedQuery) {
-  const result = await runSuiteQL(savedQuery);
+export async function refreshWidgetData(savedQuery, userId) {
+  const result = await runSuiteQL(savedQuery, { userId });
   return {
     data: result.items,
     totalResults: result.totalResults,

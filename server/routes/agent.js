@@ -44,9 +44,10 @@ router.get('/history', (req, res) => {
     SELECT id, instruction, tool, arguments, result, success,
            record_type, record_id, before_state, status, reverted_at, created_at
     FROM agent_history
+    WHERE user_id = ?
     ORDER BY created_at DESC
     LIMIT 100
-  `).all();
+  `).all(req.userId);
   res.json(rows.map(r => ({
     ...r,
     arguments: JSON.parse(r.arguments),

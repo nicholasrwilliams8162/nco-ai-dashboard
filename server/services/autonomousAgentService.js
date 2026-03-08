@@ -4,8 +4,10 @@ import { runSuiteQL } from './netsuiteClient.js';
 import { createRecord, updateRecord } from './restRecordClient.js';
 import db from '../db/database.js';
 
-function getGroqClient() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
+function getGroqClient(userId) {
+  const row = userId
+    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").get(userId)
+    : db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
   const apiKey = row?.value || process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('Groq API key is not configured. Add it in Settings.');
   return new Groq({ apiKey });
@@ -127,7 +129,7 @@ async function planExecution(agent) {
     return { plan, rawText: agent.cached_plan, client: null, systemPrompt: null, userMessages: null, fromCache: true };
   }
 
-  const client = getGroqClient();
+  const client = getGroqClient(agent.user_id);
 
   const memories = getAgentMemories(agent.id);
   let memoryBlock = '';
@@ -179,7 +181,7 @@ export async function executeAgent(agentId) {
     let rows = [];
     console.log(`[AutoAgent] Query:\n${plan.query}`);
     try {
-      const result = await runSuiteQL(plan.query);
+      const result = await runSuiteQL(plan.query, { userId: agent.user_id });
       rows = result.items || [];
     } catch (firstErr) {
       console.warn(`[AutoAgent] Query failed: ${firstErr.message}\nAttempting self-correction…`);
@@ -192,7 +194,7 @@ export async function executeAgent(agentId) {
 
       try {
         // Need a live client for correction — get one if we were on cache
-        const corrClient = client ?? getGroqClient();
+        const corrClient = client ?? getGroqClient(agent.user_id);
         const corrSystemPrompt = systemPrompt ?? (buildPlannerPrompt(agent.instructions));
         const corrUserMessages = userMessages ?? [{ role: 'user', content: agent.instructions }];
 
@@ -208,7 +210,7 @@ export async function executeAgent(agentId) {
         plan = JSON.parse(correctedText);
         if (!plan.query) throw new Error('Corrected plan has no query');
         console.log(`[AutoAgent] Corrected query:\n${plan.query}`);
-        const result = await runSuiteQL(plan.query);
+        const result = await runSuiteQL(plan.query, { userId: agent.user_id });
         rows = result.items || [];
         console.log(`[AutoAgent] Self-correction succeeded`);
         // Cache the corrected plan and save memory
@@ -265,9 +267,9 @@ export async function executeAgent(agentId) {
           const filledArgs = fillTemplate(plan.actionArguments, row);
           filledArgs.recordType = normalizeRecordType(filledArgs.recordType);
           if (plan.actionTool === 'updateRecord') {
-            await updateRecord(filledArgs.recordType, filledArgs.id, filledArgs.values);
+            await updateRecord(filledArgs.recordType, filledArgs.id, filledArgs.values, agent.user_id);
           } else if (plan.actionTool === 'createRecord') {
-            await createRecord(filledArgs.recordType, filledArgs.values);
+            await createRecord(filledArgs.recordType, filledArgs.values, agent.user_id);
           }
           addNotification(agentId, runId, 'action', `Executed: ${message}`);
           actionsCreated++;
@@ -343,11 +345,12 @@ export async function executeTodo(todoId) {
   const args = JSON.parse(todo.arguments);
 
   try {
-    args.recordType = normalizeRecordType(args.recordType);
+    const agent = db.prepare('SELECT user_id FROM autonomous_agents WHERE id = ?').get(todo.agent_id);
+  args.recordType = normalizeRecordType(args.recordType);
     if (todo.action_tool === 'updateRecord') {
-      await updateRecord(args.recordType, args.id, args.values);
+      await updateRecord(args.recordType, args.id, args.values, agent?.user_id);
     } else if (todo.action_tool === 'createRecord') {
-      await createRecord(args.recordType, args.values);
+      await createRecord(args.recordType, args.values, agent?.user_id);
     } else {
       throw new Error(`Unknown action tool: ${todo.action_tool}`);
     }
