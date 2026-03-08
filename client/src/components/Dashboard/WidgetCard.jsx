@@ -70,7 +70,6 @@ export function WidgetCard({ widget, isMobile = false }) {
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef(null);
-  // Track whether the dropdown should open left-aligned to avoid clipping on narrow cards
   const [dropdownAlignLeft, setDropdownAlignLeft] = useState(false);
   const triggerRef = useRef(null);
 
@@ -91,13 +90,9 @@ export function WidgetCard({ widget, isMobile = false }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showSettings]);
 
-  // Determine dropdown alignment when opening — if the trigger button is too
-  // close to the left edge of the viewport, align the dropdown to the left
-  // instead of the right so it doesn't clip off-screen.
   const handleSettingsToggle = () => {
     if (!showSettings && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      // 192px = w-48 dropdown width
       setDropdownAlignLeft(rect.right < 192);
     }
     setShowSettings(v => !v);
@@ -117,16 +112,35 @@ export function WidgetCard({ widget, isMobile = false }) {
   };
 
   const cachedAt = widget.cached_at
-    ? new Date(widget.cached_at).toLocaleTimeString()
+    ? new Date(widget.cached_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : null;
 
   return (
-    <div className="flex flex-col bg-gray-800 rounded-xl border border-gray-700 h-full">
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      background: 'var(--card-bg)',
+      borderRadius: 14,
+      border: '1px solid var(--border)',
+      boxShadow: 'var(--shadow-card)',
+      height: '100%',
+      overflow: 'hidden',
+      transition: 'box-shadow 0.2s',
+    }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-gray-700 flex-shrink-0 min-h-[44px]">
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 18px',
+        borderBottom: '1px solid var(--border-soft)',
+        flexShrink: 0, minHeight: 48,
+      }}>
         {isEditing ? (
           <input
-            className="bg-gray-700 text-white text-sm font-medium rounded px-2 py-0.5 flex-1 mr-2 outline-none"
+            style={{
+              background: 'var(--input-bg)', color: 'var(--text-1)',
+              border: '1.5px solid var(--blue)', borderRadius: 7,
+              padding: '4px 10px', flex: 1, marginRight: 8, outline: 'none',
+              fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+            }}
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onBlur={handleRename}
@@ -134,13 +148,14 @@ export function WidgetCard({ widget, isMobile = false }) {
             autoFocus
           />
         ) : (
-          // On mobile isMobile=true so dragging is disabled — remove cursor-grab to avoid confusion
           <h3
-            className={`drag-handle text-sm font-medium text-white truncate transition-colors ${
-              isMobile
-                ? 'cursor-default'
-                : 'cursor-grab active:cursor-grabbing hover:text-blue-400'
-            }`}
+            className={`drag-handle ${isMobile ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+            style={{
+              fontSize: 14, fontWeight: 700, letterSpacing: '-0.015em',
+              color: 'var(--text-1)', margin: 0, overflow: 'hidden',
+              whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1,
+              transition: 'color 0.15s',
+            }}
             onDoubleClick={() => { if (!isMobile) setIsEditing(true); }}
             onTouchEnd={() => { if (isMobile) setIsEditing(true); }}
             title={isMobile ? undefined : 'Double-click to rename'}
@@ -149,33 +164,48 @@ export function WidgetCard({ widget, isMobile = false }) {
           </h3>
         )}
 
-        {/* Action buttons — stopPropagation prevents drag hijacking */}
-        <div className="flex items-center gap-0.5 ml-2 flex-shrink-0" onMouseDown={e => e.stopPropagation()}>
-          <span className="text-xs text-gray-500 mr-1 hidden sm:block">{cachedAt}</span>
+        {/* Action buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 8, flexShrink: 0 }}
+          onMouseDown={e => e.stopPropagation()}>
+          {cachedAt && (
+            <span style={{ fontSize: 11, color: 'var(--text-4)', marginRight: 4, display: 'none' }}
+              className="sm:block">{cachedAt}</span>
+          )}
 
-          {/* Refresh — min 44px touch target via padding */}
+          {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 text-gray-500 hover:text-blue-400 focus-visible:outline-2 focus-visible:outline-blue-500 transition-colors rounded disabled:opacity-50"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 30, height: 30, border: 'none', background: 'transparent',
+              cursor: 'pointer', borderRadius: 7, color: 'var(--text-3)',
+              transition: 'all 0.15s', opacity: isRefreshing ? 0.5 : 1,
+            }}
             title="Refresh data"
           >
-            <svg className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg style={{ width: 14, height: 14, animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
 
-          {/* Three-dot settings menu */}
-          <div className="relative" ref={settingsRef}>
+          {/* Three-dot menu */}
+          <div style={{ position: 'relative' }} ref={settingsRef}>
             <button
               ref={triggerRef}
               onClick={handleSettingsToggle}
-              className={`flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded focus-visible:outline-2 focus-visible:outline-blue-500 transition-colors ${
-                showSettings ? 'text-white bg-gray-700' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700'
-              }`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 30, height: 30, border: 'none',
+                background: showSettings ? 'var(--card-bg-2)' : 'transparent',
+                cursor: 'pointer', borderRadius: 7, color: 'var(--text-3)',
+                transition: 'all 0.15s',
+              }}
               title="Widget settings"
             >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="5" cy="12" r="2" />
                 <circle cx="12" cy="12" r="2" />
                 <circle cx="19" cy="12" r="2" />
@@ -183,71 +213,90 @@ export function WidgetCard({ widget, isMobile = false }) {
             </button>
 
             {showSettings && (
-              <div
-                className={`absolute top-full mt-1 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 p-3 space-y-3 ${
-                  dropdownAlignLeft ? 'left-0' : 'right-0'
-                }`}
-              >
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', zIndex: 50,
+                width: 196, padding: 12,
+                background: 'var(--card-bg)', border: '1px solid var(--border)',
+                borderRadius: 12, boxShadow: 'var(--shadow-modal)',
+                ...(dropdownAlignLeft ? { left: 0 } : { right: 0 }),
+              }}>
                 {/* Chart type */}
-                <div>
-                  <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">Chart type</p>
-                  <div className="grid grid-cols-5 gap-1">
-                    {CHART_TYPES.map(ct => (
-                      <button
-                        key={ct.type}
-                        onClick={() => changeVisualizationType(widget.id, ct.type)}
-                        title={ct.label}
-                        className={`flex flex-col items-center gap-0.5 py-1.5 rounded transition-colors ${
-                          widget.visualization_type === ct.type
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                        }`}
-                      >
-                        {ct.icon}
-                        <span className="text-[9px] leading-none">{ct.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
+                  Chart type
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 12 }}>
+                  {CHART_TYPES.map(ct => (
+                    <button
+                      key={ct.type}
+                      onClick={() => changeVisualizationType(widget.id, ct.type)}
+                      title={ct.label}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                        padding: '6px 4px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        background: widget.visualization_type === ct.type ? 'var(--blue)' : 'transparent',
+                        color: widget.visualization_type === ct.type ? '#fff' : 'var(--text-3)',
+                      }}
+                    >
+                      {ct.icon}
+                      <span style={{ fontSize: 9, lineHeight: 1 }}>{ct.label}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* Width — desktop only */}
                 {!isMobile && (
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">Width</p>
-                    <div className="grid grid-cols-4 gap-1">
+                  <>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
+                      Width
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 12 }}>
                       {SIZE_STEPS.map(s => (
                         <button
                           key={s.w}
                           onClick={() => resizeWidget(widget.id, s.w)}
-                          className={`py-1.5 text-xs rounded transition-colors ${
-                            widget.grid_w === s.w
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                          }`}
+                          style={{
+                            padding: '5px 4px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                            fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
+                            background: widget.grid_w === s.w ? 'var(--blue)' : 'transparent',
+                            color: widget.grid_w === s.w ? '#fff' : 'var(--text-3)',
+                          }}
                         >
                           {s.label}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Divider + actions */}
-                <div className="border-t border-gray-700 pt-2 space-y-0.5">
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                   <button
                     onClick={() => { setShowInfo(v => !v); setShowSettings(false); }}
-                    className="w-full text-left text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-2 rounded transition-colors flex items-center gap-2"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      width: '100%', padding: '7px 8px', borderRadius: 7,
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      fontSize: 12.5, color: 'var(--text-2)', textAlign: 'left',
+                      transition: 'all 0.15s', fontFamily: 'inherit',
+                    }}
                   >
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: 13, height: 13, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {showInfo ? 'Hide query info' : 'Show query info'}
                   </button>
                   <button
-                    onClick={() => { removeWidget(widget.id); }}
-                    className="w-full text-left text-xs text-red-400 hover:text-red-300 hover:bg-gray-700 px-2 py-2 rounded transition-colors flex items-center gap-2"
+                    onClick={() => removeWidget(widget.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      width: '100%', padding: '7px 8px', borderRadius: 7,
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      fontSize: 12.5, color: 'var(--red)', textAlign: 'left',
+                      transition: 'all 0.15s', fontFamily: 'inherit',
+                    }}
                   >
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: 13, height: 13, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Remove widget
@@ -261,19 +310,28 @@ export function WidgetCard({ widget, isMobile = false }) {
 
       {/* Info panel */}
       {showInfo && (
-        <div className="px-4 py-2 bg-gray-900/50 border-b border-gray-700 text-xs text-gray-400 flex-shrink-0">
+        <div style={{
+          padding: '10px 18px', borderBottom: '1px solid var(--border-soft)',
+          background: 'var(--card-bg-2)', flexShrink: 0,
+        }}>
           {widget.original_question && (
-            <p><span className="text-gray-500">Q:</span> {widget.original_question}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>
+              <span style={{ color: 'var(--text-4)' }}>Q: </span>{widget.original_question}
+            </p>
           )}
           {widget.interpretation && (
-            <p className="mt-0.5"><span className="text-gray-500">AI:</span> {widget.interpretation}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>
+              <span style={{ color: 'var(--text-4)' }}>AI: </span>{widget.interpretation}
+            </p>
           )}
-          <p className="mt-0.5 font-mono text-gray-600 break-all">{widget.suiteql_query}</p>
+          <p style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: 'var(--text-4)', wordBreak: 'break-all', marginTop: 4 }}>
+            {widget.suiteql_query}
+          </p>
         </div>
       )}
 
       {/* Chart area */}
-      <div className="flex-1 p-3 min-h-0 overflow-hidden">
+      <div style={{ flex: 1, padding: 12, minHeight: 0, overflow: 'hidden' }}>
         <WidgetRenderer widget={widget} />
       </div>
     </div>

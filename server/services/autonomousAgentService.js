@@ -13,10 +13,15 @@ function getGroqClient(userId) {
   return new Groq({ apiKey });
 }
 
-// Replace {{column_name}} placeholders with values from a query result row
+// Runtime tokens that must be resolved at execution time, not at plan time
+const RUNTIME_TOKENS = new Set(['NOW_UNIX', 'NOW_ISO', 'NOW_DATE']);
+
+// Replace {{column_name}} placeholders with values from a query result row.
+// Preserves {{RUNTIME_TOKEN}} placeholders so they can be resolved at execution time.
 function fillTemplate(template, row) {
   if (typeof template === 'string') {
-    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      if (RUNTIME_TOKENS.has(key)) return match; // preserve for execution-time resolution
       const val = row[key] ?? row[key.toLowerCase()] ?? '';
       return String(val);
     });
@@ -27,6 +32,25 @@ function fillTemplate(template, row) {
   if (template && typeof template === 'object') {
     return Object.fromEntries(
       Object.entries(template).map(([k, v]) => [k, fillTemplate(v, row)])
+    );
+  }
+  return template;
+}
+
+// Resolve runtime tokens at the moment of execution (auto-execute or approval)
+function resolveRuntimeTokens(template) {
+  if (typeof template === 'string') {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      if (key === 'NOW_UNIX') return Math.floor(Date.now() / 1000).toString();
+      if (key === 'NOW_ISO')  return new Date().toISOString();
+      if (key === 'NOW_DATE') return new Date().toISOString().split('T')[0];
+      return match;
+    });
+  }
+  if (Array.isArray(template)) return template.map(resolveRuntimeTokens);
+  if (template && typeof template === 'object') {
+    return Object.fromEntries(
+      Object.entries(template).map(([k, v]) => [k, resolveRuntimeTokens(v)])
     );
   }
   return template;
@@ -66,6 +90,12 @@ Rules:
 - For notifyMessage and actionArguments: use {{exact_column_alias}} from your SELECT.
 - CRITICAL: mainline is a column on transactionline, NOT on transaction. Never write t.mainline on the transaction table.
 - Limit results with ROWNUM <= 200 (or less) to avoid overwhelming the system.
+
+RUNTIME TOKENS — use these in actionArguments.values when the instruction calls for a dynamic value at execution time:
+- {{NOW_UNIX}} → current Unix epoch timestamp as a string (e.g. "1772930747") — use when instruction says "current timestamp", "Unix timestamp", or "epoch"
+- {{NOW_ISO}}  → current ISO 8601 datetime string (e.g. "2026-03-07T19:45:00.000Z")
+- {{NOW_DATE}} → current date string (e.g. "2026-03-07")
+These are resolved at execution/approval time, NOT at plan time. NEVER hardcode a date/timestamp.
 
 CRITICAL — REST API recordType names (use EXACTLY, all lowercase, no spaces):
   salesorder, invoice, vendorbill, purchaseorder, estimate, itemreceipt,
@@ -264,7 +294,7 @@ export async function executeAgent(agentId) {
       } else {
         // Auto-execute
         try {
-          const filledArgs = fillTemplate(plan.actionArguments, row);
+          const filledArgs = resolveRuntimeTokens(fillTemplate(plan.actionArguments, row));
           filledArgs.recordType = normalizeRecordType(filledArgs.recordType);
           if (plan.actionTool === 'updateRecord') {
             await updateRecord(filledArgs.recordType, filledArgs.id, filledArgs.values, agent.user_id);
@@ -342,11 +372,12 @@ export async function executeTodo(todoId) {
   if (!todo) throw new Error('Todo not found');
   if (todo.status !== 'pending') throw new Error('This item has already been processed');
 
-  const args = JSON.parse(todo.arguments);
+  // Resolve runtime tokens at approval time (e.g. {{NOW_UNIX}} → current Unix timestamp)
+  const args = resolveRuntimeTokens(JSON.parse(todo.arguments));
 
   try {
     const agent = db.prepare('SELECT user_id FROM autonomous_agents WHERE id = ?').get(todo.agent_id);
-  args.recordType = normalizeRecordType(args.recordType);
+    args.recordType = normalizeRecordType(args.recordType);
     if (todo.action_tool === 'updateRecord') {
       await updateRecord(args.recordType, args.id, args.values, agent?.user_id);
     } else if (todo.action_tool === 'createRecord') {

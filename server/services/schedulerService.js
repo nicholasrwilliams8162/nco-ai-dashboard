@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import cronParser from 'cron-parser';
 import { executeAgent } from './autonomousAgentService.js';
 import db from '../db/database.js';
 
@@ -46,4 +47,32 @@ export function initScheduler() {
   }
 
   console.log(`[Scheduler] Initialized with ${agents.length} active agent(s)`);
+}
+
+// Called when the system wakes from sleep — runs any agents whose scheduled
+// window was missed while the machine was suspended.
+export async function catchUpMissedRuns() {
+  const agents = db.prepare(
+    'SELECT * FROM autonomous_agents WHERE enabled = 1 AND paused = 0'
+  ).all();
+
+  const now = new Date();
+  console.log(`[Scheduler] Wake catch-up check for ${agents.length} agent(s)`);
+
+  for (const agent of agents) {
+    try {
+      const lastRun = agent.last_run_at ? new Date(agent.last_run_at) : new Date(0);
+      const interval = cronParser.parseExpression(agent.schedule, { currentDate: lastRun });
+      const nextDue = interval.next().toDate();
+
+      if (nextDue < now) {
+        console.log(`[Scheduler] Catch-up: running missed agent "${agent.name}" (was due ${nextDue.toISOString()})`);
+        executeAgent(agent.id).catch(err =>
+          console.error(`[Scheduler] Catch-up failed for "${agent.name}":`, err.message)
+        );
+      }
+    } catch (err) {
+      console.warn(`[Scheduler] Catch-up parse error for "${agent.name}":`, err.message);
+    }
+  }
 }

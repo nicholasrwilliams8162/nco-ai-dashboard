@@ -180,9 +180,43 @@ Packaged as a standalone Mac desktop app with system tray and auto-launch at log
 
 ---
 
+### Multi-Tenant User Authentication — Clerk (complete)
+The app is now a proper multi-user product. Each user creates their own account and manages their own data independently.
+
+**Auth provider:** Clerk (managed service — handles sessions, JWTs, password resets, email verification)
+
+**Sign-in methods:**
+- Email/password
+- Google OAuth ("Continue with Google")
+
+**How it works:**
+- `<ClerkProvider>` wraps the React app — `<SignedOut>` shows the Clerk `<SignIn />` component, `<SignedIn>` shows the dashboard
+- Every API request carries a Clerk JWT in `Authorization: Bearer <token>` (axios interceptor)
+- `clerkMiddleware()` on the Express server validates tokens globally
+- `requireClerkAuth` middleware extracts `req.userId` (Clerk user ID) and gates all protected routes
+- NetSuite OAuth: `user_id` stored in `oauth_pending` at initiate time, read back at callback (no Clerk session during redirect)
+
+**Data isolation:**
+- `user_id` column added to: `netsuite_tokens`, `oauth_pending`, `dashboards`, `query_history`, `agent_history`, `autonomous_agents`
+- New `user_settings` table `(user_id, key, value)` replaces the global `app_settings` for per-user Groq API key, etc.
+- All queries, agent runs, and scheduled tasks are scoped to the owning user
+- Scheduled autonomous agents use `agent.user_id` from DB — no request context needed
+
+**Key files:**
+- `server/middleware/auth.js` — `requireClerkAuth` middleware
+- `client/src/main.jsx` — `<ClerkProvider>` wrapper
+- `client/src/App.jsx` — `<SignedIn>/<SignedOut>` + `<UserButton>` in navbar
+- `client/src/api/client.js` — axios interceptor attaches Bearer token
+
+**Env vars required:**
+- `client/.env`: `VITE_CLERK_PUBLISHABLE_KEY=pk_...`
+- `server/.env`: `CLERK_SECRET_KEY=sk_...` + `CLERK_PUBLISHABLE_KEY=pk_...`
+
+---
+
 ## Current status
 
-**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, and Electron desktop app all functional.
+**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, and multi-tenant Clerk authentication all functional.
 
 ## Key files
 
@@ -202,6 +236,9 @@ server/
   services/netsuiteClient.js        # SuiteQL + token refresh
   services/schemaContext.js         # Section-selected schema context
   db/database.js                    # SQLite init + all migrations
+
+client/src/
+  middleware/auth.js                # requireClerkAuth middleware (Clerk JWT validation)
 
 client/src/
   App.jsx                           # Root — 3-tab nav (Dashboard/Agent/Automation)
@@ -224,10 +261,13 @@ electron/
 - If port 3001 stuck: `lsof -ti :3001 | xargs kill -9`
 
 ## Ideas / next steps
-- Multi-dashboard support
+- Multi-dashboard support per user
 - Custom app icon for Electron (.icns)
 - Code signing for Mac distribution
 - Windows build (NSIS installer)
 - Persistent volume on Railway (Pro plan)
+- Deploy Railway with Clerk env vars for cloud multi-tenant use
+- Switch Clerk from development mode to production keys
 - Agent multi-step workflows
 - Export dashboard as PDF/image
+- Billing / subscription gating per user (Stripe)

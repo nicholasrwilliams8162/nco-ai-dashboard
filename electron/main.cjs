@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, powerMonitor } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -134,6 +134,21 @@ function createTray() {
   tray.on('click', () => { mainWindow.show(); mainWindow.focus(); });
 }
 
+// ─── Badge ────────────────────────────────────────────────────────────────────
+
+function updateBadge() {
+  http.get(`http://localhost:${PORT}/api/internal/pending-count`, (res) => {
+    let data = '';
+    res.on('data', chunk => { data += chunk; });
+    res.on('end', () => {
+      try {
+        const { pending } = JSON.parse(data);
+        app.setBadgeCount(pending || 0);
+      } catch {}
+    });
+  }).on('error', () => {});
+}
+
 // ─── Auto-launch ──────────────────────────────────────────────────────────────
 
 async function setupAutoLaunch() {
@@ -163,6 +178,25 @@ async function main() {
   createWindow();
   createTray();
   setupAutoLaunch();
+
+  // Poll for pending approvals and update dock badge
+  updateBadge();
+  setInterval(updateBadge, 30_000);
+
+  // On system wake, run any agents that were missed while the machine was asleep
+  powerMonitor.on('resume', () => {
+    console.log('[PowerMonitor] System resumed — triggering missed run catch-up');
+    const req = http.request(
+      { method: 'POST', hostname: 'localhost', port: PORT, path: '/api/internal/catchup' },
+      (res) => {
+        console.log(`[PowerMonitor] Catch-up response: ${res.statusCode}`);
+        // Refresh badge after agents may have created new approval requests
+        setTimeout(updateBadge, 5000);
+      }
+    );
+    req.on('error', (err) => console.warn('[PowerMonitor] Catch-up request failed:', err.message));
+    req.end();
+  });
 }
 
 app.whenReady().then(main);

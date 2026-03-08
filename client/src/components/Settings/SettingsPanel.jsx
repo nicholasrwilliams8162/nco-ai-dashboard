@@ -12,13 +12,22 @@ function CopyField({ value }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <code className="flex-1 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-blue-300 font-mono truncate">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+      <code style={{
+        flex: 1, fontSize: 11, background: 'var(--page-bg)', border: '1px solid var(--border)',
+        borderRadius: 7, padding: '6px 10px', color: 'var(--blue)',
+        fontFamily: 'DM Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
         {value}
       </code>
       <button
         onClick={copy}
-        className="flex-shrink-0 text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors min-h-[32px]"
+        style={{
+          flexShrink: 0, fontSize: 12, padding: '5px 12px', background: 'var(--card-bg-2)',
+          border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer',
+          color: 'var(--text-2)', fontFamily: 'inherit', fontWeight: 600, whiteSpace: 'nowrap',
+          minHeight: 30,
+        }}
       >
         {copied ? 'Copied!' : 'Copy'}
       </button>
@@ -26,9 +35,34 @@ function CopyField({ value }) {
   );
 }
 
-// Shared input class — text-base (16px) prevents iOS Safari auto-zoom on focus
-const inputClass =
-  'w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-base sm:text-sm transition-colors';
+const inputStyle = {
+  width: '100%', padding: '10px 14px',
+  background: 'var(--input-bg)', border: '1.5px solid var(--border)',
+  borderRadius: 9, color: 'var(--text-1)',
+  fontSize: 14, fontFamily: 'inherit', fontWeight: 500,
+  outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+};
+
+function StyledInput({ type = 'text', value, onChange, onKeyDown, placeholder, mono = false }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      style={{ ...inputStyle, fontFamily: mono ? 'DM Mono, monospace' : 'inherit', fontSize: mono ? 13 : 14 }}
+      onFocus={e => {
+        e.target.style.borderColor = 'var(--blue)';
+        e.target.style.boxShadow = '0 0 0 3px var(--blue-light)';
+      }}
+      onBlur={e => {
+        e.target.style.borderColor = 'var(--border)';
+        e.target.style.boxShadow = 'none';
+      }}
+    />
+  );
+}
 
 export function SettingsPanel({ onClose, initialError }) {
   const { authStatus, groqKeySet, checkAuth } = useDashboardStore();
@@ -100,170 +134,203 @@ export function SettingsPanel({ onClose, initialError }) {
   };
 
   return (
-    // Overlay — full screen on mobile so modal has room to breathe
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
-      {/* Sheet — slides up on mobile (items-end), centered modal on sm+ */}
-      <div className="bg-gray-800 border border-gray-700 rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
-        {/* Drag handle indicator on mobile */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 bg-gray-600 rounded-full" />
-        </div>
-
-        <div className="p-5 sm:p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">NetSuite Connection</h2>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.55)', padding: 24,
+    }}>
+      <div style={{
+        background: 'var(--card-bg)', border: '1px solid var(--border)',
+        borderRadius: 16, boxShadow: 'var(--shadow-modal)',
+        width: '100%', maxWidth: 480, maxHeight: '90vh',
+        overflowY: 'auto',
+      }}>
+        <div style={{ padding: '24px 28px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-1)', margin: 0 }}>
+              Settings
+            </h2>
             {onClose && (
-              // 44px touch target for close button
               <button
                 onClick={onClose}
-                className="flex items-center justify-center w-10 h-10 -mr-2 text-gray-400 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg transition-colors"
-                aria-label="Close settings"
+                style={{
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', background: 'var(--card-bg-2)', borderRadius: 8, cursor: 'pointer',
+                  color: 'var(--text-3)', transition: 'all 0.15s',
+                }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: 15, height: 15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}
           </div>
 
+          {/* Section label */}
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 14 }}>
+            NetSuite Connection
+          </p>
+
           {authStatus.connected ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 px-4 py-3 bg-green-900/40 border border-green-700/50 rounded-lg">
-                <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                <span className="text-green-300 text-sm font-medium">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 16px', background: 'var(--green-light)',
+                border: '1px solid var(--green)', borderRadius: 10,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--green)' }}>
                   Connected — {authStatus.accountId}
                 </span>
               </div>
-              {error && <p className="text-red-400 text-sm">{error}</p>}
+              {error && <p style={{ fontSize: 13, color: 'var(--red)', margin: 0 }}>{error}</p>}
               <button
                 onClick={handleDisconnect}
                 disabled={isDisconnecting}
-                className="w-full px-4 py-3 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 text-sm font-medium min-h-[44px]"
+                style={{
+                  width: '100%', padding: '11px 16px', background: 'var(--red-light)',
+                  color: 'var(--red)', border: '1px solid transparent', borderRadius: 9,
+                  fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                  opacity: isDisconnecting ? 0.6 : 1, fontFamily: 'inherit',
+                  transition: 'all 0.15s', minHeight: 44,
+                }}
               >
                 {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Setup instructions — collapsible */}
-              <div className="border border-gray-700 rounded-lg overflow-hidden">
+              <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
                 <button
                   onClick={() => setShowSetup(s => !s)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-gray-700/50 transition-colors min-h-[44px]"
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '11px 14px', fontSize: 13.5, fontWeight: 600, color: 'var(--text-2)',
+                    background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    minHeight: 44,
+                  }}
                 >
-                  <span className="font-medium">NetSuite setup requirements</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform flex-shrink-0 ${showSetup ? 'rotate-180' : ''}`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  >
+                  NetSuite setup requirements
+                  <svg style={{ width: 14, height: 14, transform: showSetup ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {showSetup && (
-                  <div className="px-4 pb-4 space-y-3 text-xs text-gray-400 border-t border-gray-700">
-                    <div className="pt-3">
-                      <p className="font-semibold text-gray-300 mb-1">1. Enable OAuth 2.0 feature</p>
-                      <p>Setup → Company → Enable Features → SuiteCloud tab → Manage Authentication → check <strong className="text-gray-200">OAuth 2.0</strong></p>
+                  <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ paddingTop: 12 }}>
+                      <p style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-2)', marginBottom: 4 }}>1. Enable OAuth 2.0</p>
+                      <p style={{ fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.6 }}>
+                        Setup → Company → Enable Features → SuiteCloud → Manage Authentication → check <strong style={{ color: 'var(--text-2)' }}>OAuth 2.0</strong>
+                      </p>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-300 mb-1">2. Create an Integration record</p>
-                      <p>Setup → Integration → Manage Integrations → New</p>
-                      <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                        <li>Check <strong className="text-gray-200">Authorization Code Grant</strong></li>
-                        <li>Check <strong className="text-gray-200">REST Web Services</strong> scope</li>
-                        <li>Set the redirect URI below exactly:</li>
-                      </ul>
+                      <p style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-2)', marginBottom: 4 }}>2. Create Integration record</p>
+                      <p style={{ fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.6 }}>
+                        Setup → Integration → Manage Integrations → New. Enable Authorization Code Grant + REST Web Services. Set redirect URI:
+                      </p>
                       <CopyField value={REDIRECT_URI} />
-                      <p className="mt-2">After saving, copy the <strong className="text-gray-200">Consumer Key</strong> (Client ID) and <strong className="text-gray-200">Consumer Secret</strong> (Client Secret) — they're only shown once.</p>
                     </div>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Account ID</label>
-                <input
-                  type="text"
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>Account ID</label>
+                <StyledInput
                   value={accountId}
                   onChange={e => setAccountId(e.target.value)}
                   placeholder="e.g. 1234567 or 1234567_SB1"
-                  className={inputClass}
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Client ID</label>
-                <input
-                  type="text"
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>Client ID</label>
+                <StyledInput
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
                   placeholder="Consumer Key from integration record"
-                  className={`${inputClass} font-mono`}
+                  mono
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Client Secret</label>
-                <input
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>Client Secret</label>
+                <StyledInput
                   type="password"
                   value={clientSecret}
                   onChange={e => setClientSecret(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleConnect()}
                   placeholder="Consumer Secret from integration record"
-                  className={`${inputClass} font-mono`}
+                  mono
                 />
               </div>
 
               {error && (
-                <div className="px-3 py-2 bg-red-900/40 border border-red-700/50 rounded-lg">
-                  <p className="text-red-300 text-sm">{error}</p>
-                  {(error.includes('invalid') || error.toLowerCase().includes('login')) && (
-                    <p className="text-red-400 text-xs mt-1">
-                      Tip: Check that OAuth 2.0 is enabled in NetSuite (see setup requirements above) and that your Client ID matches exactly.
-                    </p>
-                  )}
+                <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid var(--red)', borderRadius: 9 }}>
+                  <p style={{ fontSize: 13, color: 'var(--red)', margin: 0 }}>{error}</p>
                 </div>
               )}
 
               <button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 text-sm font-medium min-h-[44px]"
+                style={{
+                  width: '100%', padding: '11px 16px',
+                  background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 9,
+                  fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                  opacity: isConnecting ? 0.7 : 1, fontFamily: 'inherit',
+                  boxShadow: '0 1px 3px rgba(37,99,235,0.3)', minHeight: 44,
+                }}
               >
                 {isConnecting ? 'Redirecting to NetSuite…' : 'Connect to NetSuite'}
               </button>
             </div>
           )}
 
-          {/* Groq API Key section */}
-          <div className="border-t border-gray-700 pt-5 mt-5">
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-300">Groq API Key</h3>
-              {groqKeySet
-                ? <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 border border-green-700/50 rounded-full">Saved</span>
-                : <span className="text-xs px-2 py-0.5 bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 rounded-full">Not set</span>
-              }
+          {/* Groq API Key */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', margin: 0 }}>
+                Groq API Key
+              </p>
+              {groqKeySet ? (
+                <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--green-light)', color: 'var(--green)', borderRadius: 6, fontWeight: 700 }}>
+                  Saved
+                </span>
+              ) : (
+                <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--amber-light)', color: 'var(--amber)', borderRadius: 6, fontWeight: 700 }}>
+                  Not set
+                </span>
+              )}
             </div>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={groqKey}
-                onChange={e => setGroqKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveGroqKey()}
-                placeholder={groqKeySet ? 'Enter new key to replace…' : 'gsk_…'}
-                className={`${inputClass} flex-1 font-mono`}
-              />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <StyledInput
+                  type="password"
+                  value={groqKey}
+                  onChange={e => setGroqKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveGroqKey()}
+                  placeholder={groqKeySet ? 'Enter new key to replace…' : 'gsk_…'}
+                  mono
+                />
+              </div>
               <button
                 onClick={handleSaveGroqKey}
                 disabled={isSavingKey}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 text-sm font-medium flex-shrink-0 min-h-[44px]"
+                style={{
+                  flexShrink: 0, padding: '10px 16px',
+                  background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 9,
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  opacity: isSavingKey ? 0.7 : 1, fontFamily: 'inherit', minHeight: 44,
+                }}
               >
                 {isSavingKey ? 'Saving…' : keySaved ? 'Saved!' : 'Save'}
               </button>
             </div>
-            {keyError && <p className="text-red-400 text-xs mt-1.5">{keyError}</p>}
-            <p className="text-gray-500 text-xs mt-1.5">
-              Get a free key at <span className="text-gray-400">console.groq.com</span>. Never sent to the browser after saving.
+            {keyError && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{keyError}</p>}
+            <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }}>
+              Get a free key at <span style={{ color: 'var(--text-2)' }}>console.groq.com</span>. Never sent to the browser after saving.
             </p>
           </div>
         </div>

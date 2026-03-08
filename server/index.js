@@ -13,7 +13,8 @@ import dashboardRoutes from './routes/dashboard.js';
 import netsuiteRoutes from './routes/netsuite.js';
 import automationRoutes from './routes/autonomousAgents.js';
 import { requireClerkAuth } from './middleware/auth.js';
-import { initScheduler } from './services/schedulerService.js';
+import { initScheduler, catchUpMissedRuns } from './services/schedulerService.js';
+import db from './db/database.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isProd = process.env.NODE_ENV === 'production';
@@ -41,6 +42,25 @@ app.use(
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Internal endpoints — called by Electron main process, localhost only
+function requireLocalhost(req, res, next) {
+  const host = req.hostname;
+  if (host !== 'localhost' && host !== '127.0.0.1') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
+app.post('/api/internal/catchup', requireLocalhost, (req, res) => {
+  catchUpMissedRuns().catch(err => console.error('[Catchup]', err.message));
+  res.json({ ok: true });
+});
+
+app.get('/api/internal/pending-count', requireLocalhost, (req, res) => {
+  const row = db.prepare(`SELECT COUNT(*) AS count FROM agent_todos WHERE status = 'pending'`).get();
+  res.json({ pending: row.count });
+});
 
 // Routes — auth callback is public (redirect from NetSuite, no Clerk session)
 app.use('/api/auth', authRoutes);

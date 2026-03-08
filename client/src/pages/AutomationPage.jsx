@@ -514,7 +514,7 @@ function AgentCard({ agent, onRefresh, onEdit }) {
 
 // ─── Approvals Tab ────────────────────────────────────────────────────────────
 
-function ApprovalsTab({ onCountChange }) {
+function ApprovalsTab({ onCountChange, onApprovalChange }) {
   const [todos, setTodos]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [processing, setProcessing] = useState({}); // id -> 'approve'|'deny'
@@ -545,6 +545,7 @@ function ApprovalsTab({ onCountChange }) {
       setDenyingId(null);
       setDenyReason('');
       onCountChange?.(todos.length - 1);
+      onApprovalChange?.(); // refresh notifications tab + navbar badge
     } catch (err) {
       alert(`Failed: ${err.response?.data?.error || err.message}`);
     } finally {
@@ -644,7 +645,7 @@ function ApprovalsTab({ onCountChange }) {
 
 // ─── Notifications Tab ────────────────────────────────────────────────────────
 
-function NotificationsTab({ onMarkRead }) {
+function NotificationsTab({ onMarkRead, reloadSignal }) {
   const [notifs, setNotifs]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -657,7 +658,7 @@ function NotificationsTab({ onMarkRead }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadSignal]);
 
   const markAllRead = async () => {
     await api.post('/automation/notifications/read', {});
@@ -763,7 +764,7 @@ function RunHistoryTab() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function AutomationPage() {
+export function AutomationPage({ onApprovalChange }) {
   const [tab, setTab]           = useState(() => localStorage.getItem('automation_tab') || 'agents');
   const [agents, setAgents]     = useState([]);
   const [loadingAgents, setLoadingAgents] = useState(true);
@@ -771,6 +772,7 @@ export function AutomationPage() {
   const [editingAgent, setEditingAgent] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount]   = useState(0);
+  const [notifReloadSignal, setNotifReloadSignal] = useState(0);
 
   const loadAgents = useCallback(async () => {
     try {
@@ -924,12 +926,20 @@ export function AutomationPage() {
                 setPendingCount(count);
                 loadCounts();
               }}
+              onApprovalChange={() => {
+                loadCounts();
+                setNotifReloadSignal(s => s + 1);
+                onApprovalChange?.();
+              }}
             />
           )}
 
           {/* ── Notifications Tab ── */}
           {tab === 'notifications' && (
-            <NotificationsTab onMarkRead={() => setUnreadCount(0)} />
+            <NotificationsTab
+              onMarkRead={() => setUnreadCount(0)}
+              reloadSignal={notifReloadSignal}
+            />
           )}
 
           {/* ── Run History Tab ── */}

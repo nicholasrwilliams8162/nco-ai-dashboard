@@ -4,11 +4,11 @@ import { useDashboardStore } from '../../store/dashboardStore';
 import { WidgetRenderer } from '../Charts/WidgetRenderer';
 
 const EXAMPLES = [
-  'Show total revenue by month this year',
-  'Which customers have the highest open balance?',
-  'Top 10 items by sales quantity this quarter',
-  'Count of open sales orders by status',
-  'What is my total accounts receivable?',
+  'Total revenue by month this year',
+  'Customers with highest open balance',
+  'Top 10 items by sales quantity',
+  'Open sales orders by status',
+  'Total accounts receivable',
 ];
 
 export function NaturalLanguageInput() {
@@ -22,11 +22,9 @@ export function NaturalLanguageInput() {
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!question.trim() || isLoading) return;
-
     setIsLoading(true);
     setError(null);
     setResult(null);
-
     try {
       const res = await api.post('/ai/query', { question });
       setResult(res.data);
@@ -52,73 +50,82 @@ export function NaturalLanguageInput() {
     }
   };
 
-  const handleDismiss = () => {
-    setResult(null);
-    setError(null);
-  };
-
-  const handleExample = (ex) => {
-    setQuestion(ex);
-    setResult(null);
-    setError(null);
-  };
+  const handleDismiss = () => { setResult(null); setError(null); };
+  const handleExample = (ex) => { setQuestion(ex); setResult(null); setError(null); };
 
   return (
-    <div className="border-t border-gray-700 bg-gray-900 flex-shrink-0">
+    <div style={{
+      borderTop: '1px solid var(--border)',
+      background: 'var(--sidebar-bg)',
+      flexShrink: 0,
+    }}>
       {/* Successful result preview */}
       {result && result.success && (
-        <div className="px-3 sm:px-6 pt-3">
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            {/* Preview header — two-row on mobile, single row on sm+ */}
-            <div className="px-4 py-2.5 border-b border-gray-700">
-              {/* Top row: title + dismiss */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-white leading-snug">{result.visualization?.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 sm:line-clamp-1">{result.interpretation}</p>
+        <div style={{ padding: '12px 28px 0' }}>
+          <div style={{
+            background: 'var(--card-bg)', border: '1px solid var(--border)',
+            borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-card)',
+          }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', margin: 0 }}>
+                    {result.visualization?.title}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
+                    {result.interpretation}
+                  </p>
                 </div>
-                {/* Dismiss — 44px touch target */}
-                <button
-                  onClick={handleDismiss}
-                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-300 focus-visible:outline-2 focus-visible:outline-blue-500 rounded transition-colors"
-                  title="Dismiss"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onClick={handleDismiss} style={{
+                  flexShrink: 0, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: 'var(--text-3)', borderRadius: 7,
+                }}>
+                  <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-              {/* Bottom row: row count + pin button */}
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-gray-500">{result.totalResults} row{result.totalResults !== 1 ? 's' : ''}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                  {result.totalResults} row{result.totalResults !== 1 ? 's' : ''}
+                </span>
                 <button
                   onClick={handlePin}
                   disabled={isPinning}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors min-h-[36px]"
+                  style={{
+                    padding: '7px 16px', borderRadius: 9, border: 'none',
+                    background: 'var(--blue)', color: '#fff',
+                    fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                    opacity: isPinning ? 0.6 : 1, fontFamily: 'inherit',
+                    boxShadow: '0 1px 3px rgba(37,99,235,0.3)',
+                  }}
                 >
                   {isPinning ? 'Pinning…' : 'Pin to Dashboard'}
                 </button>
               </div>
             </div>
-
-            {/* Chart preview — taller on mobile for table results, shorter for charts */}
-            <div className="h-44 sm:h-52 p-3">
+            <div style={{ height: 180, padding: 12 }}>
               <WidgetRenderer widget={{ ...result, cached_data: result.data, visualization_config: result.visualization }} />
             </div>
           </div>
         </div>
       )}
 
-      {/* AI returned not-success (query built but no data / uncertain) */}
+      {/* AI returned not-success */}
       {result && !result.success && (
-        <div className="px-3 sm:px-6 pt-3">
-          <div className="flex items-start justify-between gap-3 bg-yellow-900/30 border border-yellow-700/50 rounded-xl px-4 py-3">
-            <p className="text-sm text-yellow-300">{result.interpretation}</p>
-            <button
-              onClick={handleDismiss}
-              className="flex-shrink-0 flex items-center justify-center w-8 h-8 text-yellow-500 hover:text-yellow-300 rounded transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style={{ padding: '12px 28px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            background: 'var(--amber-light)', border: '1px solid var(--amber)',
+            borderRadius: 12, padding: '12px 16px',
+          }}>
+            <p style={{ fontSize: 13, color: 'var(--amber)', margin: 0 }}>{result.interpretation}</p>
+            <button onClick={handleDismiss} style={{
+              flexShrink: 0, width: 24, height: 24, border: 'none', background: 'transparent',
+              cursor: 'pointer', color: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -126,16 +133,20 @@ export function NaturalLanguageInput() {
         </div>
       )}
 
-      {/* Network / API error */}
+      {/* Error */}
       {error && (
-        <div className="px-3 sm:px-6 pt-3">
-          <div className="flex items-start justify-between gap-3 bg-red-900/30 border border-red-700/50 rounded-xl px-4 py-3">
-            <p className="text-sm text-red-300">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="flex-shrink-0 flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-300 rounded transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style={{ padding: '12px 28px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            background: 'var(--red-light)', border: '1px solid var(--red)',
+            borderRadius: 12, padding: '12px 16px',
+          }}>
+            <p style={{ fontSize: 13, color: 'var(--red)', margin: 0 }}>{error}</p>
+            <button onClick={() => setError(null)} style={{
+              flexShrink: 0, width: 24, height: 24, border: 'none', background: 'transparent',
+              cursor: 'pointer', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -144,45 +155,74 @@ export function NaturalLanguageInput() {
       )}
 
       {/* Input row */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4">
-        <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              placeholder="Ask a question about your NetSuite data…"
-              // 16px font prevents iOS Safari from auto-zooming on focus
-              className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-xl px-4 py-3 pr-12 text-base sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
-              disabled={isLoading}
-            />
-            {isLoading && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="animate-spin w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              </div>
-            )}
-          </div>
-          {/* Ask button — minimum 44px height for touch */}
-          <button
-            type="submit"
-            disabled={!question.trim() || isLoading}
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors flex-shrink-0 min-h-[48px]"
-          >
-            Ask
-          </button>
+      <div style={{ padding: '14px 28px' }}>
+        <form onSubmit={handleSubmit} style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={question}
+            onChange={e => setQuestion(e.target.value)}
+            placeholder="Ask anything about your NetSuite data…"
+            style={{
+              width: '100%', padding: '13px 56px 13px 18px',
+              background: 'var(--card-bg)', border: '1.5px solid var(--border)',
+              borderRadius: 12, color: 'var(--text-1)',
+              fontSize: 15, fontFamily: 'inherit', fontWeight: 400,
+              outline: 'none', boxShadow: 'var(--shadow-card)',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = 'var(--blue)';
+              e.target.style.boxShadow = '0 0 0 4px var(--blue-light), var(--shadow-card)';
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = 'var(--border)';
+              e.target.style.boxShadow = 'var(--shadow-card)';
+            }}
+            disabled={isLoading}
+          />
+
+          {isLoading ? (
+            <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>
+              <svg style={{ width: 15, height: 15, color: 'var(--blue)', animation: 'spin 1s linear infinite' }}
+                fill="none" viewBox="0 0 24 24">
+                <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={!question.trim()}
+              style={{
+                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: question.trim() ? 'var(--blue)' : 'var(--border)',
+                border: 'none', borderRadius: 9, cursor: question.trim() ? 'pointer' : 'default',
+                transition: 'all 0.15s',
+                boxShadow: question.trim() ? '0 2px 8px rgba(37,99,235,0.35)' : 'none',
+              }}
+            >
+              <svg style={{ width: 15, height: 15, color: '#fff' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          )}
         </form>
 
-        {/* Example prompt chips — horizontal scroll on mobile, wrap on sm+
-            no-scrollbar hides the scrollbar track while keeping scroll gesture */}
-        <div className="flex gap-2 mt-2.5 overflow-x-auto pb-safe sm:flex-wrap sm:overflow-x-visible no-scrollbar">
+        {/* Example chips */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           {EXAMPLES.map(ex => (
             <button
               key={ex}
               onClick={() => handleExample(ex)}
-              className="text-xs text-gray-500 hover:text-gray-300 active:text-white bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border border-gray-700 rounded-full px-3 py-1.5 transition-colors whitespace-nowrap flex-shrink-0 sm:flex-shrink sm:whitespace-normal min-h-[32px]"
+              style={{
+                fontSize: 12, color: 'var(--text-3)', background: 'var(--card-bg-2)',
+                border: '1px solid var(--border)', borderRadius: 20,
+                padding: '5px 12px', cursor: 'pointer', transition: 'all 0.15s',
+                fontFamily: 'inherit', fontWeight: 500, whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.target.style.color = 'var(--text-1)'; e.target.style.borderColor = 'var(--blue-mid)'; }}
+              onMouseLeave={e => { e.target.style.color = 'var(--text-3)'; e.target.style.borderColor = 'var(--border)'; }}
             >
               {ex}
             </button>

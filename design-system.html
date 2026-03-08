@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NCO AI Dashboard — Design System v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500&display=swap" rel="stylesheet" />
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════
+       LIGHT TOKENS
+    ═══════════════════════════════════════════════════════════ */
+    [data-theme="light"] {
+      --page-bg:     #EEF1F6;
+      --sidebar-bg:  #FFFFFF;
+      --card-bg:     #FFFFFF;
+      --card-bg-2:   #F7F9FC;
+      --input-bg:    #F4F6FA;
+
+      --border:      #E4E8F0;
+      --border-soft: #EEF1F6;
+
+      --blue:        #2563EB;
+      --blue-light:  #EFF4FF;
+      --blue-mid:    #BFCFFE;
+      --blue-dark:   #1D4ED8;
+
+      --green:       #16A34A;
+      --green-light: #DCFCE7;
+      --red:         #DC2626;
+      --red-light:   #FEE2E2;
+      --amber:       #D97706;
+      --amber-light: #FEF3C7;
+
+      --text-1: #0F1729;
+      --text-2: #4B5675;
+      --text-3: #8A94A6;
+      --text-4: #B8BFCC;
+
+      --shadow-card:    0 1px 3px rgba(15,23,41,0.06), 0 4px 12px rgba(15,23,41,0.05);
+      --shadow-card-hov:0 2px 6px rgba(15,23,41,0.08), 0 8px 24px rgba(15,23,41,0.08);
+      --shadow-modal:   0 8px 40px rgba(15,23,41,0.14), 0 2px 8px rgba(15,23,41,0.08);
+
+      --sidebar-text:        #4B5675;
+      --sidebar-text-active: #2563EB;
+      --sidebar-active-bg:   #EFF4FF;
+      --sidebar-icon:        #8A94A6;
+      --sidebar-icon-active: #2563EB;
+      --sidebar-divider:     #E4E8F0;
+
+      --scrollbar: #D1D9E8;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DARK TOKENS
+    ═══════════════════════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --page-bg:     #0D1117;
+      --sidebar-bg:  #161B26;
+      --card-bg:     #1C2333;
+      --card-bg-2:   #232D42;
+      --input-bg:    #1C2333;
+
+      --border:      #2A3349;
+      --border-soft: #202840;
+
+      --blue:        #3B82F6;
+      --blue-light:  rgba(59,130,246,0.12);
+      --blue-mid:    rgba(59,130,246,0.30);
+      --blue-dark:   #2563EB;
+
+      --green:       #22C55E;
+      --green-light: rgba(34,197,94,0.12);
+      --red:         #EF4444;
+      --red-light:   rgba(239,68,68,0.12);
+      --amber:       #F59E0B;
+      --amber-light: rgba(245,158,11,0.12);
+
+      --text-1: #E8EDFB;
+      --text-2: #8B96B2;
+      --text-3: #546080;
+      --text-4: #374160;
+
+      --shadow-card:     0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+      --shadow-card-hov: 0 2px 8px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+      --shadow-modal:    0 8px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+
+      --sidebar-text:        #8B96B2;
+      --sidebar-text-active: #E8EDFB;
+      --sidebar-active-bg:   rgba(59,130,246,0.12);
+      --sidebar-icon:        #546080;
+      --sidebar-icon-active: #3B82F6;
+      --sidebar-divider:     #2A3349;
+
+      --scrollbar: #2A3349;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-family: 'Manrope', -apple-system, sans-serif;
+      font-size: 14px;
+      background: var(--page-bg);
+      color: var(--text-1);
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.25s, color 0.25s;
+    }
+
+    body { padding: 48px 44px; max-width: 1160px; margin: 0 auto; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       DOC CHROME
+    ═══════════════════════════════════════════════════════════ */
+    .section { margin-bottom: 72px; }
+
+    .section-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--text-3);
+      line-height: 1.75;
+      padding: 13px 16px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      border-left: 3px solid var(--blue);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MASTHEAD
+    ═══════════════════════════════════════════════════════════ */
+    .masthead {
+      margin-bottom: 80px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .masthead-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue);
+      background: var(--blue-light);
+      border: 1px solid var(--blue-mid);
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      letter-spacing: 0.01em;
+    }
+    .masthead h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--text-1);
+      margin-bottom: 16px;
+    }
+    .masthead p {
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--text-2);
+      line-height: 1.65;
+      max-width: 520px;
+      letter-spacing: -0.01em;
+    }
+    .masthead-meta {
+      display: flex;
+      gap: 40px;
+      margin-top: 36px;
+    }
+    .meta-item-label { font-size: 11px; color: var(--text-3); font-weight: 500; margin-bottom: 3px; }
+    .meta-item-value { font-size: 13px; color: var(--text-2); font-weight: 600; }
+
+    /* ═══════════════════════════════════════════════════════════
+       COLOR PALETTE
+    ═══════════════════════════════════════════════════════════ */
+    .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; }
+    .swatch { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .swatch-chip { height: 68px; }
+    .swatch-foot { padding: 10px 12px; background: var(--card-bg); }
+    .swatch-name { display: block; font-size: 12px; font-weight: 600; color: var(--text-1); }
+    .swatch-val  { display: block; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-3); margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       TYPOGRAPHY
+    ═══════════════════════════════════════════════════════════ */
+    .type-row {
+      display: flex;
+      align-items: baseline;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .type-row:last-child { border-bottom: none; }
+    .type-spec { font-family: 'DM Mono', monospace; font-size: 10.5px; color: var(--text-3); min-width: 160px; line-height: 1.8; }
+
+    /* ═══════════════════════════════════════════════════════════
+       APP SHELL MOCKUP
+    ═══════════════════════════════════════════════════════════ */
+    .app-shell {
+      display: flex;
+      background: var(--page-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-modal);
+      height: 560px;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--sidebar-divider);
+      margin-bottom: 16px;
+    }
+    .sidebar-logo-mark {
+      width: 32px; height: 32px;
+      background: var(--blue);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .sidebar-logo-mark svg { width: 16px; height: 16px; color: #fff; }
+    .sidebar-logo-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-1);
+    }
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-4);
+      padding: 0 20px;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      margin: 1px 10px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sidebar-text);
+      transition: all 0.15s;
+      position: relative;
+    }
+    .sidebar-item:hover { background: var(--border-soft); color: var(--text-1); }
+    .sidebar-item.active {
+      background: var(--sidebar-active-bg);
+      color: var(--sidebar-text-active);
+    }
+    .sidebar-item svg { width: 16px; height: 16px; color: var(--sidebar-icon); flex-shrink: 0; transition: color 0.15s; }
+    .sidebar-item.active svg { color: var(--sidebar-icon-active); }
+    .sidebar-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--blue);
+      color: #fff;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px 0;
+      border-top: 1px solid var(--sidebar-divider);
+    }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue) 0%, #7C3AED 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-user-name { font-size: 13px; font-weight: 700; color: var(--text-1); letter-spacing: -0.01em; }
+    .sidebar-user-role { font-size: 11px; color: var(--text-3); }
+
+    /* Main area */
+    .app-main {
+      flex: 1;
+      overflow: auto;
+      padding: 28px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .app-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-1); }
+    .page-subtitle { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════════════════════════ */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow-card-hov); transform: translateY(-1px); }
+    .card-header {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; color: var(--text-1); }
+    .card-body { padding: 20px 22px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       KPI CARDS
+    ═══════════════════════════════════════════════════════════ */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: var(--shadow-card);
+      transition: box-shadow 0.2s, transform 0.2s;
+      cursor: default;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow-card-hov); transform: translateY(-1px); }
+    .kpi-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: -0.01em; }
+    .kpi-icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .kpi-icon-wrap svg { width: 17px; height: 17px; }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      color: var(--text-1);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .kpi-value.mono { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; }
+    .kpi-footer { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .tag-green { background: var(--green-light); color: var(--green); }
+    .tag-red   { background: var(--red-light);   color: var(--red); }
+    .tag-blue  { background: var(--blue-light);  color: var(--blue); }
+    .tag-amber { background: var(--amber-light); color: var(--amber); }
+
+    /* ═══════════════════════════════════════════════════════════
+       BUTTONS
+    ═══════════════════════════════════════════════════════════ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 9px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.3), 0 4px 12px rgba(37,99,235,0.2);
+    }
+    .btn-primary:hover {
+      background: var(--blue-dark);
+      box-shadow: 0 2px 6px rgba(37,99,235,0.4), 0 8px 20px rgba(37,99,235,0.25);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text-1);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(15,23,41,0.06);
+    }
+    .btn-secondary:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--card-bg-2); color: var(--text-1); border-color: var(--text-3); }
+    .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid transparent; }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+    .btn-sm { padding: 6px 13px; font-size: 12.5px; border-radius: 7px; }
+    .btn-icon {
+      padding: 8px;
+      background: transparent;
+      color: var(--text-3);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-icon:hover { color: var(--text-1); background: var(--card-bg-2); border-color: var(--border); }
+
+    /* ═══════════════════════════════════════════════════════════
+       BADGES
+    ═══════════════════════════════════════════════════════════ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 7px;
+    }
+    .badge-green  { background: var(--green-light);  color: var(--green); }
+    .badge-blue   { background: var(--blue-light);   color: var(--blue); }
+    .badge-red    { background: var(--red-light);    color: var(--red); }
+    .badge-amber  { background: var(--amber-light);  color: var(--amber); }
+    .badge-neutral { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* ═══════════════════════════════════════════════════════════
+       TABLE
+    ═══════════════════════════════════════════════════════════ */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--text-3);
+      padding: 11px 22px; text-align: left;
+      background: var(--card-bg-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table th:first-child { border-radius: 0; }
+    .data-table td {
+      padding: 13px 22px;
+      font-size: 13.5px;
+      color: var(--text-2);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--blue-light); }
+    .td-strong { color: var(--text-1) !important; font-weight: 600; }
+    .td-mono   { font-family: 'DM Mono', monospace; font-size: 12.5px !important; color: var(--text-3) !important; }
+    .td-green  { color: var(--green) !important; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13px !important; }
+    .td-amber  { color: var(--amber) !important; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13px !important; }
+
+    /* ═══════════════════════════════════════════════════════════
+       INPUTS
+    ═══════════════════════════════════════════════════════════ */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 13px; font-weight: 700; color: var(--text-1); letter-spacing: -0.01em; }
+    .field-sub { font-size: 11.5px; color: var(--text-3); }
+    .input {
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-1);
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .input::placeholder { color: var(--text-4); font-weight: 400; }
+    .input:focus {
+      border-color: var(--blue);
+      background: var(--card-bg);
+      box-shadow: 0 0 0 3px var(--blue-light);
+    }
+    select.input { cursor: pointer; }
+    .ai-wrap { position: relative; }
+    .ai-input {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 56px 14px 18px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-1);
+      width: 100%;
+      outline: none;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ai-input::placeholder { color: var(--text-3); }
+    .ai-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px var(--blue-light), var(--shadow-card);
+    }
+    .ai-send-btn {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px;
+      background: var(--blue);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+      transition: all 0.15s;
+    }
+    .ai-send-btn:hover { background: var(--blue-dark); transform: translateY(-50%) scale(1.06); }
+    .ai-send-btn svg { width: 16px; height: 16px; color: #fff; }
+
+    /* ═══════════════════════════════════════════════════════════
+       TOGGLE
+    ═══════════════════════════════════════════════════════════ */
+    .toggle {
+      width: 40px; height: 23px;
+      background: var(--border);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--blue); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2.5px; left: 2.5px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+    }
+    .toggle.on::after { transform: translateX(17px); }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONFIRM CARD
+    ═══════════════════════════════════════════════════════════ */
+    .confirm-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .confirm-header {
+      padding: 16px 22px;
+      background: var(--card-bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .confirm-body { padding: 22px; }
+    .confirm-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 11.5px; font-weight: 500;
+      color: var(--blue);
+      background: var(--blue-light);
+      border: 1px solid var(--blue-mid);
+      padding: 3px 9px;
+      border-radius: 5px;
+    }
+    .confirm-desc {
+      font-size: 14.5px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+    .confirm-desc strong { color: var(--text-1); font-weight: 700; }
+    code.ic {
+      font-family: 'DM Mono', monospace;
+      font-size: 12.5px;
+      color: var(--blue);
+      background: var(--blue-light);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .code-block {
+      background: var(--card-bg-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 14px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.9;
+      margin-bottom: 20px;
+      color: var(--text-2);
+    }
+    .ck { color: var(--text-3); }
+    .cv { color: var(--text-1); font-weight: 500; }
+    .cs { color: var(--green); }
+
+    /* ═══════════════════════════════════════════════════════════
+       AGENT CARDS
+    ═══════════════════════════════════════════════════════════ */
+    .agent-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      box-shadow: var(--shadow-card);
+      transition: all 0.2s ease;
+    }
+    .agent-card:hover { box-shadow: var(--shadow-card-hov); transform: translateY(-1px); }
+    .agent-icon {
+      width: 40px; height: 40px;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .ai-green { background: var(--green-light); }
+    .ai-blue  { background: var(--blue-light); }
+    .ai-muted { background: var(--card-bg-2); border: 1px solid var(--border); }
+    .agent-icon svg { width: 18px; height: 18px; }
+    .agent-body { flex: 1; min-width: 0; }
+    .agent-name {
+      font-size: 14.5px; font-weight: 700;
+      letter-spacing: -0.015em;
+      color: var(--text-1);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 4px;
+    }
+    .agent-desc { font-size: 12.5px; color: var(--text-3); margin-bottom: 11px; line-height: 1.5; }
+    .agent-meta { display: flex; gap: 18px; flex-wrap: wrap; }
+    .agent-meta-item { font-size: 12px; color: var(--text-3); }
+    .agent-meta-item b { color: var(--text-2); font-weight: 600; }
+    .agent-actions { display: flex; align-items: center; gap: 6px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       APPROVAL CARD
+    ═══════════════════════════════════════════════════════════ */
+    .approval-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .approval-card-header {
+      padding: 14px 22px;
+      background: var(--card-bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .approval-card-body { padding: 20px 22px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       NOTIFICATIONS
+    ═══════════════════════════════════════════════════════════ */
+    .notif-list {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .notif-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .notif-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border-soft);
+      transition: background 0.15s;
+    }
+    .notif-row:last-child { border-bottom: none; }
+    .notif-row:hover { background: var(--card-bg-2); }
+    .notif-row.unread { background: var(--blue-light); }
+    .notif-row.unread:hover { background: var(--blue-light); filter: brightness(0.97); }
+    .notif-icon {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 14px;
+    }
+    .ni-green { background: var(--green-light); color: var(--green); }
+    .ni-amber { background: var(--amber-light); color: var(--amber); }
+    .ni-red   { background: var(--red-light);   color: var(--red); }
+    .ni-blue  { background: var(--blue-light);  color: var(--blue); }
+    .notif-text { flex: 1; min-width: 0; }
+    .notif-msg { font-size: 13.5px; color: var(--text-2); line-height: 1.5; margin-bottom: 3px; }
+    .notif-msg b { color: var(--text-1); font-weight: 700; }
+    .notif-meta { font-size: 11.5px; color: var(--text-3); display: flex; gap: 10px; }
+    .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); flex-shrink: 0; margin-top: 9px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       SIGN-IN
+    ═══════════════════════════════════════════════════════════ */
+    .signin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px;
+      max-width: 420px;
+      box-shadow: var(--shadow-modal);
+    }
+    .google-btn {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: 11px 18px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: var(--text-1);
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      letter-spacing: -0.01em;
+    }
+    .google-btn:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+    .or-divider {
+      display: flex; align-items: center; gap: 14px;
+      font-size: 12px; color: var(--text-3);
+      margin: 20px 0;
+    }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ═══════════════════════════════════════════════════════════
+       SETTINGS
+    ═══════════════════════════════════════════════════════════ */
+    .settings-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .settings-hdr {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 18px;
+      background: var(--card-bg-2);
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+    }
+    .settings-row-label { font-size: 14px; font-weight: 700; color: var(--text-1); letter-spacing: -0.01em; }
+    .settings-row-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       THEME TOGGLE PILL
+    ═══════════════════════════════════════════════════════════ */
+    #theme-switcher {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      display: flex;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      box-shadow: var(--shadow-modal);
+      z-index: 1000;
+      gap: 2px;
+    }
+    .theme-btn {
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13px; font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none; cursor: pointer;
+      transition: all 0.18s ease;
+      letter-spacing: -0.01em;
+      color: var(--text-3);
+      background: transparent;
+    }
+    .theme-btn.active {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+    .theme-btn:not(.active):hover { background: var(--card-bg-2); color: var(--text-1); }
+
+  </style>
+</head>
+<body>
+
+  <!-- ═══ MASTHEAD ════════════════════════════════════════════ -->
+  <div class="masthead">
+    <div class="masthead-tag">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      Design System v3 — High Contrast
+    </div>
+    <h1>NCO AI Dashboard</h1>
+    <p>Clean, readable, high-contrast. Built for people who stare at this all day — every label sharp, every number clear.</p>
+    <div class="masthead-meta">
+      <div><div class="meta-item-label">Typeface</div><div class="meta-item-value">Manrope</div></div>
+      <div><div class="meta-item-label">Data / Code</div><div class="meta-item-value">DM Mono</div></div>
+      <div><div class="meta-item-label">Accent</div><div class="meta-item-value">#2563EB Blue</div></div>
+      <div><div class="meta-item-label">Light BG</div><div class="meta-item-value">#EEF1F6 Slate</div></div>
+      <div><div class="meta-item-label">Dark BG</div><div class="meta-item-value">#0D1117 Navy</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ COLORS ══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Color System</div>
+    <div class="palette">
+      <div class="swatch"><div class="swatch-chip" style="background:#EEF1F6"></div><div class="swatch-foot"><span class="swatch-name">Page BG</span><span class="swatch-val">#EEF1F6</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#FFFFFF;border-bottom:1px solid #E4E8F0"></div><div class="swatch-foot"><span class="swatch-name">Card</span><span class="swatch-val">#FFFFFF</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#F7F9FC"></div><div class="swatch-foot"><span class="swatch-name">Card alt</span><span class="swatch-val">#F7F9FC</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#2563EB"></div><div class="swatch-foot"><span class="swatch-name">Blue</span><span class="swatch-val">#2563EB</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#EFF4FF"></div><div class="swatch-foot"><span class="swatch-name">Blue tint</span><span class="swatch-val">#EFF4FF</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#16A34A"></div><div class="swatch-foot"><span class="swatch-name">Green</span><span class="swatch-val">#16A34A</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#DC2626"></div><div class="swatch-foot"><span class="swatch-name">Red</span><span class="swatch-val">#DC2626</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#D97706"></div><div class="swatch-foot"><span class="swatch-name">Amber</span><span class="swatch-val">#D97706</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#0F1729"></div><div class="swatch-foot"><span class="swatch-name">Text 1</span><span class="swatch-val">#0F1729</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#4B5675"></div><div class="swatch-foot"><span class="swatch-name">Text 2</span><span class="swatch-val">#4B5675</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#8A94A6"></div><div class="swatch-foot"><span class="swatch-name">Text 3</span><span class="swatch-val">#8A94A6</span></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:#E4E8F0"></div><div class="swatch-foot"><span class="swatch-name">Border</span><span class="swatch-val">#E4E8F0</span></div></div>
+    </div>
+    <div class="note">Light: #EEF1F6 page background with pure white cards — classic "cards on surface" hierarchy. Dark: #0D1117 navy base with #1C2333 cards — high contrast, not muddy. Both modes use opacity-based borders for consistency.</div>
+  </div>
+
+  <!-- ═══ TYPOGRAPHY ══════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Typography — Manrope</div>
+    <div>
+      <div class="type-row">
+        <div class="type-spec">800 · 40px · −0.03em<br>Page titles</div>
+        <div style="font-size:40px;font-weight:800;letter-spacing:-0.03em;color:var(--text-1)">Dashboard</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec">700 · 22px · −0.02em<br>Section headings</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--text-1)">Open Sales Orders</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec">700 · 14px · −0.015em<br>Card titles, labels</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:-0.015em;color:var(--text-1)">High-Value Order Monitor</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec">500 · 14px · −0.01em<br>Body / descriptions</div>
+        <div style="font-size:14px;font-weight:500;color:var(--text-2);line-height:1.6;letter-spacing:-0.01em">Monitors all open sales orders over $10,000 that haven't been billed, and queues matching records for approval on each run.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec">DM Mono 500 · 28px<br>KPI values</div>
+        <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;letter-spacing:-0.02em;color:var(--text-1)">$1,284,930</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec">DM Mono 400 · 12.5px<br>IDs, codes, timestamps</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text-3)">SO-10482 · 2026-03-07 · 14m ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ APP SHELL ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">App Shell — Sidebar Layout</div>
+    <div class="app-shell">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-mark">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <span class="sidebar-logo-name">NCO AI</span>
+        </div>
+        <div class="sidebar-item active">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Dashboard
+        </div>
+        <div class="sidebar-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Agent
+        </div>
+        <div class="sidebar-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg>
+          Automation
+          <span class="sidebar-badge">3</span>
+        </div>
+        <div class="sidebar-footer">
+          <div class="sidebar-user">
+            <div class="sidebar-avatar">NW</div>
+            <div>
+              <div class="sidebar-user-name">Nick Williams</div>
+              <div class="sidebar-user-role">Administrator</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Main -->
+      <div class="app-main">
+        <div class="app-topbar">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle">NetSuite · tstdrv2309831</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Add Widget
+            </button>
+          </div>
+        </div>
+        <!-- Mini KPI row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div class="kpi-card" style="padding:16px 18px">
+            <div class="kpi-top" style="margin-bottom:10px">
+              <div class="kpi-label">Open Invoices</div>
+              <div class="kpi-icon-wrap" style="background:var(--blue-light);width:30px;height:30px;border-radius:8px">
+                <svg width="14" height="14" fill="none" stroke="var(--blue)" viewBox="0 0 24 24" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+              </div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--text-1);letter-spacing:-0.02em;margin-bottom:6px">$482K</div>
+            <div style="display:flex;gap:6px;align-items:center"><div class="tag tag-green">↑ 12%</div><span style="font-size:11px;color:var(--text-3)">vs last month</span></div>
+          </div>
+          <div class="kpi-card" style="padding:16px 18px">
+            <div class="kpi-top" style="margin-bottom:10px">
+              <div class="kpi-label">Pending Approvals</div>
+              <div class="kpi-icon-wrap" style="background:var(--amber-light);width:30px;height:30px;border-radius:8px">
+                <svg width="14" height="14" fill="none" stroke="var(--amber)" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg>
+              </div>
+            </div>
+            <div style="font-size:28px;font-weight:800;color:var(--amber);letter-spacing:-0.03em;margin-bottom:6px">3</div>
+            <div style="font-size:11px;color:var(--text-3)">Awaiting your review</div>
+          </div>
+          <div class="kpi-card" style="padding:16px 18px">
+            <div class="kpi-top" style="margin-bottom:10px">
+              <div class="kpi-label">Orders This Month</div>
+              <div class="kpi-icon-wrap" style="background:var(--green-light);width:30px;height:30px;border-radius:8px">
+                <svg width="14" height="14" fill="none" stroke="var(--green)" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+              </div>
+            </div>
+            <div style="font-size:28px;font-weight:800;color:var(--text-1);letter-spacing:-0.03em;margin-bottom:6px">124</div>
+            <div style="display:flex;gap:6px;align-items:center"><div class="tag tag-green">↑ 3</div><span style="font-size:11px;color:var(--text-3)">from yesterday</span></div>
+          </div>
+        </div>
+        <!-- Mini table -->
+        <div class="card" style="flex:1">
+          <div class="card-header">
+            <span class="card-title">Recent Orders</span>
+            <button class="btn btn-ghost btn-sm">See all</button>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="td-mono">SO-10482</td><td class="td-strong">Meridian Technologies</td><td class="td-green">$48,200</td><td><div class="badge badge-amber"><div class="badge-dot"></div>Pending</div></td></tr>
+              <tr><td class="td-mono">SO-10471</td><td class="td-strong">Quantum Logistics</td><td class="td-green">$124,750</td><td><div class="badge badge-green"><div class="badge-dot"></div>Approved</div></td></tr>
+              <tr><td class="td-mono">SO-10459</td><td class="td-strong">Atlas Distribution</td><td class="td-amber">$11,400</td><td><div class="badge badge-red"><div class="badge-dot"></div>On Hold</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="note">Sidebar replaces top navbar — same pattern as both reference images. White sidebar on light-gray page background creates clear hierarchy. Active item = blue background tint + blue icon + blue text. Consistent with macOS sidebar patterns.</div>
+  </div>
+
+  <!-- ═══ KPI CARDS ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">KPI Cards</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Open Invoices</div>
+          <div class="kpi-icon-wrap" style="background:var(--blue-light)"><svg width="17" height="17" fill="none" stroke="var(--blue)" viewBox="0 0 24 24" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg></div>
+        </div>
+        <div class="kpi-value mono">$482K</div>
+        <div class="kpi-footer"><div class="tag tag-green">↑ 12.4%</div><span style="color:var(--text-3)">vs last month</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Pending Approvals</div>
+          <div class="kpi-icon-wrap" style="background:var(--amber-light)"><svg width="17" height="17" fill="none" stroke="var(--amber)" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg></div>
+        </div>
+        <div class="kpi-value" style="color:var(--amber)">3</div>
+        <div class="kpi-footer"><span style="color:var(--text-3)">Agent actions awaiting review</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Overdue Balance</div>
+          <div class="kpi-icon-wrap" style="background:var(--red-light)"><svg width="17" height="17" fill="none" stroke="var(--red)" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        </div>
+        <div class="kpi-value mono" style="color:var(--red)">$91.2K</div>
+        <div class="kpi-footer"><div class="tag tag-red">8 customers</div><span style="color:var(--text-3)">overdue</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Orders This Month</div>
+          <div class="kpi-icon-wrap" style="background:var(--green-light)"><svg width="17" height="17" fill="none" stroke="var(--green)" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></div>
+        </div>
+        <div class="kpi-value">124</div>
+        <div class="kpi-footer"><div class="tag tag-green">↑ 3</div><span style="color:var(--text-3)">from yesterday</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BUTTONS ══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Buttons & Controls</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-primary"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>New Agent</button>
+      <button class="btn btn-primary"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Approve</button>
+      <button class="btn btn-secondary">Run Now</button>
+      <button class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-danger btn-sm">Deny</button>
+      <button class="btn-icon btn"><svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+      <button class="btn-icon btn"><svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      <div class="toggle on"></div>
+      <div class="toggle"></div>
+    </div>
+  </div>
+
+  <!-- ═══ BADGES ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Badges & Status Tags</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="badge badge-green"><div class="badge-dot pulse"></div>Active</div>
+      <div class="badge badge-amber"><div class="badge-dot"></div>Pending</div>
+      <div class="badge badge-red"><div class="badge-dot"></div>Failed</div>
+      <div class="badge badge-blue">Auto-execute</div>
+      <div class="badge badge-amber">Approval required</div>
+      <div class="badge badge-neutral">Paused</div>
+      <div class="badge badge-neutral">Disabled</div>
+      <div class="badge badge-green">Completed</div>
+      <div class="badge badge-blue">Low risk</div>
+      <div class="badge badge-red">High risk</div>
+    </div>
+  </div>
+
+  <!-- ═══ DATA TABLE ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Data Table</div>
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-card)">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-0.02em;color:var(--text-1)">Open Sales Orders</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--text-3)">47 records</span>
+          <button class="btn btn-ghost btn-sm">Export</button>
+          <button class="btn btn-primary btn-sm"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add</button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="td-mono">SO-10482</td><td class="td-strong">Meridian Technologies</td><td class="td-mono">Mar 1, 2026</td><td class="td-green">$48,200</td><td><div class="badge badge-amber" style="display:inline-flex"><div class="badge-dot"></div>Pending Bill</div></td></tr>
+          <tr><td class="td-mono">SO-10471</td><td class="td-strong">Quantum Logistics</td><td class="td-mono">Feb 28, 2026</td><td class="td-green">$124,750</td><td><div class="badge badge-green" style="display:inline-flex"><div class="badge-dot"></div>Approved</div></td></tr>
+          <tr><td class="td-mono">SO-10459</td><td class="td-strong">Atlas Distribution</td><td class="td-mono">Feb 25, 2026</td><td class="td-amber">$11,400</td><td><div class="badge badge-red" style="display:inline-flex"><div class="badge-dot"></div>On Hold</div></td></tr>
+          <tr><td class="td-mono">SO-10447</td><td class="td-strong">Vertex Manufacturing</td><td class="td-mono">Feb 22, 2026</td><td class="td-green">$88,000</td><td><div class="badge badge-neutral" style="display:inline-flex">Processing</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ AGENT PAGE ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Agent Page — Instruction Input + Confirm</div>
+    <div style="max-width:660px;display:flex;flex-direction:column;gap:14px">
+      <div class="field">
+        <div class="field-label">What would you like to do?</div>
+        <div class="field-sub">Describe an action in plain English — the AI will figure out the rest.</div>
+        <div class="ai-wrap" style="margin-top:4px">
+          <input class="ai-input" type="text" placeholder="e.g. Put customer Acme Corp on credit hold…" />
+          <div class="ai-send-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19V5m0 0l-7 7m7-7l7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="confirm-card">
+        <div class="confirm-header">
+          <svg width="15" height="15" fill="none" stroke="var(--blue)" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span style="font-size:14px;font-weight:700;color:var(--text-1);flex:1;letter-spacing:-0.01em">Planned Action</span>
+          <div class="confirm-pill">updateRecord</div>
+          <div class="badge badge-green" style="margin-left:8px">Low risk</div>
+        </div>
+        <div class="confirm-body">
+          <p class="confirm-desc">Update customer <strong>Acme Corp</strong> (ID 4821) — set <code class="ic">isinactive</code> to <code class="ic">false</code> to reactivate their account.</p>
+          <div class="code-block">
+            <span class="ck">recordType  </span><span class="cs">"customer"</span><br>
+            <span class="ck">id          </span><span class="cv">4821</span><br>
+            <span class="ck">values      </span>&#123; <span class="ck">isinactive: </span><span class="cv">false</span> &#125;
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Confirm & Execute</button>
+            <button class="btn btn-ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ AUTOMATION ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Automation — Agent Cards</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:720px">
+      <div class="agent-card">
+        <div class="agent-icon ai-green"><svg fill="none" stroke="var(--green)" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg></div>
+        <div class="agent-body">
+          <div class="agent-name">High-Value Order Monitor <div class="badge badge-amber">Approval required</div> <div class="badge badge-amber" style="margin-left:auto"><div class="badge-dot pulse"></div>3 pending</div></div>
+          <div class="agent-desc">Monitors open sales orders over $10,000 that are unbilled and queues them for review.</div>
+          <div class="agent-meta">
+            <div class="agent-meta-item">Schedule <b>Every 15 min</b></div>
+            <div class="agent-meta-item">Last run <b>8m ago</b></div>
+            <div class="agent-meta-item">Total runs <b>142</b></div>
+          </div>
+        </div>
+        <div class="agent-actions">
+          <button class="btn-icon btn" title="Run now"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+          <button class="btn-icon btn" title="Pause"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>
+          <button class="btn-icon btn" title="Edit"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+          <div class="toggle on"></div>
+        </div>
+      </div>
+      <div class="agent-card" style="opacity:0.65">
+        <div class="agent-icon ai-muted"><svg fill="none" stroke="var(--text-3)" viewBox="0 0 24 24" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
+        <div class="agent-body">
+          <div class="agent-name">Overdue Customer Alerts <div class="badge badge-blue">Auto-execute</div> <div class="badge badge-neutral" style="margin-left:auto">Paused</div></div>
+          <div class="agent-desc">Sends internal alerts when customer balances exceed $5,000 overdue threshold.</div>
+          <div class="agent-meta">
+            <div class="agent-meta-item">Schedule <b>Daily 8 AM</b></div>
+            <div class="agent-meta-item">Last run <b>2d ago</b></div>
+            <div class="agent-meta-item">Total runs <b>24</b></div>
+          </div>
+        </div>
+        <div class="agent-actions">
+          <button class="btn-icon btn"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+          <button class="btn-icon btn"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+          <div class="toggle"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ APPROVAL ══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Approval Queue Card</div>
+    <div class="approval-card" style="max-width:660px">
+      <div class="approval-card-header">
+        <div class="badge badge-amber"><div class="badge-dot"></div>High-Value Order Monitor</div>
+        <div class="badge badge-neutral" style="margin-left:4px">updateRecord · salesorder</div>
+        <span style="font-size:11.5px;color:var(--text-3);margin-left:auto">14m ago</span>
+      </div>
+      <div class="approval-card-body">
+        <p class="confirm-desc" style="margin-bottom:14px">Update sales order <strong>SO-10482</strong> (Meridian Technologies, $48,200) — set <code class="ic">otherrefnum</code> to the timestamp <code class="ic">1772930747</code>.</p>
+        <details style="margin-bottom:18px">
+          <summary style="font-size:12.5px;color:var(--text-3);cursor:pointer;font-weight:600">View action details</summary>
+          <div class="code-block" style="margin-top:10px">
+            <span class="ck">recordType  </span><span class="cs">"salesorder"</span><br>
+            <span class="ck">id          </span><span class="cv">10482</span><br>
+            <span class="ck">values      </span>&#123; <span class="ck">otherrefnum: </span><span class="cs">"1772930747"</span> &#125;
+          </div>
+        </details>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Approve</button>
+          <button class="btn btn-danger">Deny</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ NOTIFICATIONS ═════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Activity Feed</div>
+    <div class="notif-list" style="max-width:660px">
+      <div class="notif-header">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-0.02em;color:var(--text-1)">Recent Activity</span>
+        <button class="btn btn-ghost btn-sm">Mark all read</button>
+      </div>
+      <div class="notif-row unread"><div class="notif-icon ni-green">✓</div><div class="notif-text"><div class="notif-msg">Executed: Updated <b>SO-10482</b> — otherrefnum set to 1772930747</div><div class="notif-meta"><span>High-Value Order Monitor</span><span>just now</span></div></div><div class="unread-dot"></div></div>
+      <div class="notif-row unread"><div class="notif-icon ni-amber">⚑</div><div class="notif-text"><div class="notif-msg">Flagged: <b>SO-10471</b> (Quantum Logistics, $124,750) — open and unbilled for 14 days</div><div class="notif-meta"><span>High-Value Order Monitor</span><span>8m ago</span></div></div><div class="unread-dot"></div></div>
+      <div class="notif-row"><div class="notif-icon ni-red">✕</div><div class="notif-text"><div class="notif-msg">Run failed — SuiteQL error corrected automatically on retry</div><div class="notif-meta"><span>Overdue Customer Alerts</span><span>2d ago</span></div></div></div>
+      <div class="notif-row"><div class="notif-icon ni-blue">↻</div><div class="notif-text"><div class="notif-msg">3 records found — 3 queued for approval</div><div class="notif-meta"><span>High-Value Order Monitor</span><span>15m ago</span></div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ SIGN IN ════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Sign In Screen</div>
+    <div class="signin-card">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="width:48px;height:48px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 14px rgba(37,99,235,0.3)">
+          <svg style="width:22px;height:22px" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div style="font-size:24px;font-weight:800;letter-spacing:-0.025em;color:var(--text-1);margin-bottom:6px">NCO AI Dashboard</div>
+        <div style="font-size:14px;color:var(--text-3);font-weight:500">Sign in to your account</div>
+      </div>
+      <button class="google-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <div class="or-divider">or</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="field"><div class="field-label">Email address</div><input class="input" type="email" placeholder="you@company.com" /></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px 18px">Continue →</button>
+      </div>
+      <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-3)">Don't have an account? <span style="color:var(--blue);cursor:pointer;font-weight:700">Sign up</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS ══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Settings Panel</div>
+    <div class="settings-card" style="max-width:520px">
+      <div class="settings-hdr">
+        <span style="font-size:16px;font-weight:700;letter-spacing:-0.02em;color:var(--text-1)">Settings</span>
+        <button class="btn-icon btn"><svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-row">
+          <div><div class="settings-row-label">NetSuite Connection</div><div class="settings-row-desc">Connected to tstdrv2309831</div></div>
+          <div class="badge badge-green"><div class="badge-dot pulse"></div>Connected</div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Groq API Key</div><div class="settings-row-desc">Used for AI query processing and planning</div></div>
+          <button class="btn btn-ghost btn-sm">Update</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Dock Badge</div><div class="settings-row-desc">Show badge count for pending approvals</div></div>
+          <div class="toggle on"></div>
+        </div>
+        <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center;padding:11px">Disconnect NetSuite</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ THEME SWITCHER ════════════════════════════════════════ -->
+  <div id="theme-switcher">
+    <button class="theme-btn active" id="btn-light" onclick="setTheme('light')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      Light
+    </button>
+    <button class="theme-btn" id="btn-dark" onclick="setTheme('dark')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      Dark
+    </button>
+  </div>
+
+  <script>
+    function setTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      document.getElementById('btn-light').classList.toggle('active', t === 'light');
+      document.getElementById('btn-dark').classList.toggle('active', t === 'dark');
+    }
+    const sys = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(sys ? 'dark' : 'light');
+  </script>
+
+</body>
+</html>

@@ -60,12 +60,12 @@ export function DashboardGrid() {
 
   if (widgets.length === 0) {
     return (
-      <div ref={containerRef} className="flex flex-col items-center justify-center h-64 text-gray-600 text-center px-4">
-        <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 280, textAlign: 'center', padding: '0 24px' }}>
+        <svg style={{ width: 44, height: 44, marginBottom: 12, color: 'var(--text-4)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
         </svg>
-        <p className="text-lg font-medium">No widgets yet</p>
-        <p className="text-sm mt-1">Ask a question below and pin the result to your dashboard</p>
+        <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-2)', margin: '0 0 6px' }}>No widgets yet</p>
+        <p style={{ fontSize: 13, color: 'var(--text-3)', margin: 0, lineHeight: 1.5 }}>Ask a question below and pin the result to your dashboard</p>
       </div>
     );
   }
