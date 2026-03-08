@@ -214,15 +214,75 @@ The app is now a proper multi-user product. Each user creates their own account 
 
 ---
 
+### Autonomous Agent Fixes (complete)
+Three bugs fixed in the same session:
+
+**1. `{{NOW_UNIX}}` timestamp replaced with empty string on approval**
+- Root cause: `fillTemplate()` treated `{{NOW_UNIX}}` like a row column — when not found it became `""`
+- Fix: Added `RUNTIME_TOKENS = new Set(['NOW_UNIX', 'NOW_ISO', 'NOW_DATE'])` — `fillTemplate` now preserves these tokens unchanged; new `resolveRuntimeTokens()` resolves them at execution time (approve click / auto-execute)
+- Planner prompt updated with RUNTIME TOKENS section so Groq knows to use them
+
+**2. Schedules not running after Mac sleep**
+- Fix: `electron/main.cjs` — `powerMonitor.on('resume', ...)` calls `POST /api/internal/catchup` on system wake
+- `server/services/schedulerService.js` exports `catchUpMissedRuns()` — uses `cron-parser` to detect any agents whose next scheduled run was missed while asleep and fires them immediately
+- `/api/internal/catchup` is a localhost-only endpoint (no Clerk auth, guarded by `requireLocalhost`)
+
+**3. Dock badge for pending approvals**
+- `electron/main.cjs` — `updateBadge()` polls `/api/internal/pending-count` every 30s and calls `app.setBadgeCount(n)`
+- `/api/internal/pending-count` — localhost-only endpoint, queries `agent_todos WHERE status='pending'`
+- Badge also refreshes 5s after wake catch-up runs
+
+**Post-approval UI refresh chain:**
+- `ApprovalsTab` calls `onApprovalChange` after approve/deny
+- `AutomationPage` increments `notifReloadSignal` state → `NotificationsTab` reloads
+- `App.jsx` passes `fetchCounts` (wrapped in `useCallback`) as `onApprovalChange` → navbar badge updates immediately
+
+---
+
+### Design System v3 (complete)
+Full UI redesign — sidebar navigation, dual light/dark theme, Manrope font.
+
+**Design direction:** High-contrast, readable, business-grade. Reference: Phonerun-style dashboard with sidebar nav.
+
+**Color system (CSS custom properties on `[data-theme]`):**
+- Light: `#EEF1F6` page bg, white cards, `#0F1729` near-black text, `#2563EB` blue
+- Dark: `#0D1117` page bg, `#1C2333` cards, `#E8EDFB` text, `#3B82F6` blue
+- Full token set: `--page-bg`, `--sidebar-bg`, `--card-bg`, `--card-bg-2`, `--input-bg`, `--border`, `--border-soft`, `--text-1`…`--text-4`, `--blue`/`--blue-light`/`--blue-mid`/`--blue-dark`, `--green`/`--red`/`--amber` + light variants, `--shadow-card`/`--shadow-modal`
+
+**Typography:**
+- Manrope (400/500/600/700/800) for all UI text — 800 weight for page headings
+- DM Mono for data values, KPI numbers, code, query display
+- Google Fonts loaded in `client/index.html`
+
+**Layout change — sidebar replaces top navbar:**
+- 220px left sidebar: logo mark + "NCO Dashboard", nav items with icons, settings link, theme toggle, Clerk `<UserButton>`
+- Page content area: `TopBar` with page title/subtitle + Refresh All (dashboard only), then page body
+- Theme toggle pill in sidebar footer — persisted to `localStorage` as `theme` key, applied as `data-theme` attribute on `<html>`
+
+**Components updated:**
+- `App.jsx` — sidebar layout, inline `Sidebar` + `TopBar` components, theme state
+- `WidgetCard.jsx` — CSS var styling, card shadow + hover lift, redesigned header/dropdown
+- `KPIWidget.jsx` — clamp-based font size, DM Mono for currency values
+- `NaturalLanguageInput.jsx` — floating send button, example chips, CSS var error states
+- `SettingsPanel.jsx` — full modal redesign with CSS vars, new input component
+- `WidgetRenderer.jsx` — `getThemeStyles()` reads CSS vars at render time for chart tooltips/grid/axis
+- `DashboardGrid.jsx` — empty state uses CSS vars
+- `tailwind.config.js` — semantic tokens (`t1`, `t2`, `card`, `accent`, etc.) mapped to CSS vars
+- `index.css` — full CSS var declaration for both themes, DataTables retheming, Tailwind gray overrides for Agent/Automation pages in light mode
+
+**Reference file:** `design-system.html` — standalone HTML/CSS design system doc (all tokens, components, app shell mockup)
+
+---
+
 ## Current status
 
-**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, and multi-tenant Clerk authentication all functional.
+**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, multi-tenant Clerk auth, and v3 design system all functional.
 
 ## Key files
 
 ```
 server/
-  index.js                          # Express app, static serving in prod
+  index.js                          # Express app, static serving in prod, internal endpoints
   routes/ai.js                      # POST /api/ai/query, GET /api/ai/history
   routes/agent.js                   # POST /api/agent/plan|execute, history, revert
   routes/auth.js                    # OAuth PKCE flow + Groq key + settings
@@ -230,27 +290,33 @@ server/
   routes/autonomousAgents.js        # Agents, todos, notifications, runs CRUD
   services/aiService.js             # Groq query pipeline + self-correction
   services/agentService.js          # Agent planning + plan execution
-  services/autonomousAgentService.js # Autonomous agent execution engine
-  services/schedulerService.js      # node-cron scheduler
+  services/autonomousAgentService.js # Autonomous agent execution engine (runtime token fix)
+  services/schedulerService.js      # node-cron scheduler + catchUpMissedRuns()
   services/restRecordClient.js      # NetSuite REST Record API
   services/netsuiteClient.js        # SuiteQL + token refresh
   services/schemaContext.js         # Section-selected schema context
   db/database.js                    # SQLite init + all migrations
+  middleware/auth.js                # requireClerkAuth (Clerk JWT validation)
 
-client/src/
-  middleware/auth.js                # requireClerkAuth middleware (Clerk JWT validation)
-
-client/src/
-  App.jsx                           # Root — 3-tab nav (Dashboard/Agent/Automation)
-  pages/AgentPage.jsx               # Manual agent write operations
-  pages/AutomationPage.jsx          # Autonomous agents + approvals + activity
-  components/Dashboard/
-  components/Charts/
-  components/QueryBar/
-  components/Settings/
+client/
+  index.html                        # Google Fonts (Manrope + DM Mono), data-theme="dark"
+  tailwind.config.js                # Semantic tokens mapped to CSS vars
+  src/
+    index.css                       # CSS custom properties (light/dark), DT theme, overrides
+    App.jsx                         # Sidebar layout, theme toggle, page routing
+    pages/AgentPage.jsx             # Manual agent write operations
+    pages/AutomationPage.jsx        # Autonomous agents + approvals + activity
+    components/Dashboard/DashboardGrid.jsx
+    components/Dashboard/WidgetCard.jsx
+    components/Charts/WidgetRenderer.jsx
+    components/Charts/KPIWidget.jsx
+    components/QueryBar/NaturalLanguageInput.jsx
+    components/Settings/SettingsPanel.jsx
 
 electron/
-  main.cjs                          # Electron main process (tray, window, server spawn)
+  main.cjs                          # Electron: tray, server spawn, dock badge, wake catch-up
+
+design-system.html                  # Standalone design system reference (tokens, components)
 ```
 
 ## To resume
@@ -259,11 +325,13 @@ electron/
 - **Build installer**: `npm run electron:dist`
 - **Deploy**: `git push master` (Railway auto-deploys)
 - If port 3001 stuck: `lsof -ti :3001 | xargs kill -9`
+- If sqlite3 ABI error: `cd server && npm rebuild better-sqlite3`
 
 ## Ideas / next steps
-- Multi-dashboard support per user
+- Apply design tokens to AgentPage and AutomationPage (currently using old Tailwind gray classes with light-mode CSS overrides)
 - Custom app icon for Electron (.icns)
 - Code signing for Mac distribution
+- Multi-dashboard support per user
 - Windows build (NSIS installer)
 - Persistent volume on Railway (Pro plan)
 - Deploy Railway with Clerk env vars for cloud multi-tenant use
