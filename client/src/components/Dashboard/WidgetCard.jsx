@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WidgetRenderer } from '../Charts/WidgetRenderer';
+import { EditWidgetPanel } from './EditWidgetPanel';
 
 const CHART_TYPES = [
   {
@@ -69,6 +70,7 @@ export function WidgetCard({ widget, isMobile = false }) {
   const [editTitle, setEditTitle] = useState(widget.title);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showEditPanel, setShowEditPanel] = useState(false);
   const settingsRef = useRef(null);
   const [dropdownAlignLeft, setDropdownAlignLeft] = useState(false);
   const triggerRef = useRef(null);
@@ -273,6 +275,23 @@ export function WidgetCard({ widget, isMobile = false }) {
                 {/* Divider + actions */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 2 }}>
                   <button
+                    onClick={() => { setShowEditPanel(true); setShowSettings(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      width: '100%', padding: '6px 7px', borderRadius: 6,
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      fontSize: 12, color: 'var(--text-2)', textAlign: 'left',
+                      transition: 'background 0.12s, color 0.12s', fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-bg-2)'; e.currentTarget.style.color = 'var(--text-1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-2)'; }}
+                  >
+                    <svg style={{ width: 12, height: 12, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit widget
+                  </button>
+                  <button
                     onClick={() => { setShowInfo(v => !v); setShowSettings(false); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7,
@@ -339,6 +358,10 @@ export function WidgetCard({ widget, isMobile = false }) {
       <div style={{ flex: 1, padding: 10, minHeight: 0, overflow: 'hidden' }}>
         <WidgetRenderer widget={widget} />
       </div>
+
+      {showEditPanel && (
+        <EditWidgetPanel widget={widget} onClose={() => setShowEditPanel(false)} />
+      )}
     </div>
   );
 }

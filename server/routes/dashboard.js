@@ -98,15 +98,24 @@ router.put('/layout', (req, res) => {
   res.json({ success: true });
 });
 
-// PATCH /api/dashboard/widgets/:id — update title and/or visualization_type
+// PATCH /api/dashboard/widgets/:id — update any widget fields
 router.patch('/widgets/:id', (req, res) => {
-  const { title, visualization_type } = req.body;
-  if (title !== undefined) {
+  const { title, visualization_type, visualization_config, suiteql_query, original_question, interpretation, cached_data } = req.body;
+  const now = new Date().toISOString();
+  if (title !== undefined)
     db.prepare('UPDATE widgets SET title = ? WHERE id = ?').run(title, req.params.id);
-  }
-  if (visualization_type !== undefined) {
+  if (visualization_type !== undefined)
     db.prepare('UPDATE widgets SET visualization_type = ? WHERE id = ?').run(visualization_type, req.params.id);
-  }
+  if (visualization_config !== undefined)
+    db.prepare('UPDATE widgets SET visualization_config = ? WHERE id = ?').run(JSON.stringify(visualization_config), req.params.id);
+  if (suiteql_query !== undefined)
+    db.prepare('UPDATE widgets SET suiteql_query = ? WHERE id = ?').run(suiteql_query, req.params.id);
+  if (original_question !== undefined)
+    db.prepare('UPDATE widgets SET original_question = ? WHERE id = ?').run(original_question, req.params.id);
+  if (interpretation !== undefined)
+    db.prepare('UPDATE widgets SET interpretation = ? WHERE id = ?').run(interpretation, req.params.id);
+  if (cached_data !== undefined)
+    db.prepare('UPDATE widgets SET cached_data = ?, cached_at = ? WHERE id = ?').run(JSON.stringify(cached_data), now, req.params.id);
   res.json({ success: true });
 });
 

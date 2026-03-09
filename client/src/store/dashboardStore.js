@@ -128,6 +128,26 @@ export const useDashboardStore = create((set, get) => ({
     await api.put('/dashboard/layout', { layouts });
   },
 
+  updateWidgetConfig: async (widgetId, patch) => {
+    await api.patch(`/dashboard/widgets/${widgetId}`, patch);
+    set(state => ({
+      widgets: state.widgets.map(w =>
+        w.id === widgetId
+          ? {
+              ...w,
+              ...(patch.visualization_type && { visualization_type: patch.visualization_type }),
+              ...(patch.visualization_config && { visualization_config: { ...w.visualization_config, ...patch.visualization_config } }),
+              ...(patch.title && { title: patch.title }),
+              ...(patch.suiteql_query && { suiteql_query: patch.suiteql_query }),
+              ...(patch.original_question && { original_question: patch.original_question }),
+              ...(patch.interpretation && { interpretation: patch.interpretation }),
+              ...(patch.cached_data && { cached_data: patch.cached_data, cached_at: new Date().toISOString() }),
+            }
+          : w
+      ),
+    }));
+  },
+
   renameDashboard: async (name) => {
     await api.patch('/dashboard/info', { name });
     set(state => ({ dashboardInfo: { ...state.dashboardInfo, name } }));

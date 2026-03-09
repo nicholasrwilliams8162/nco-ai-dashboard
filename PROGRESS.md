@@ -329,7 +329,6 @@ design-system.html                  # Standalone design system reference (tokens
 
 ## Ideas / next steps
 - Apply design tokens to AgentPage and AutomationPage (currently using old Tailwind gray classes with light-mode CSS overrides)
-- Custom app icon for Electron (.icns)
 - Code signing for Mac distribution
 - Multi-dashboard support per user
 - Windows build (NSIS installer)
@@ -416,3 +415,48 @@ Full visual overhaul targeting a modern enterprise SaaS aesthetic (Linear / Verc
 **Electron app**
 - Identified and documented port 3001 conflict (dev server vs packaged server) — must kill dev server before launching installed app
 - Build/install flow: `npm run electron:dist` → mount DMG → copy to `/Applications` → launch
+
+---
+
+### Dashboard Improvements (complete)
+
+**Custom app icon**
+- SCAI logo added as app icon for all platforms
+- `build/icon.icns` (macOS), `build/icon.ico` (Windows), `build/icon.png` (Linux) generated from source PNG using `sips` + `iconutil` + Python Pillow
+- `package.json` electron-builder config updated with explicit icon paths per platform
+
+**SuiteQL query generation fixes**
+- Added dedicated "revenue by month" example to `schemaContext.js` — uses `transaction.foreigntotal` directly with no `transactionline` join (the previous example used item-level line data, causing empty results for "total revenue by month this year")
+- Added "revenue by quarter" example with `TRUNC(date, 'Q')`
+- Split the old generic GROUP BY example into "top items by item" (transactionline) vs. revenue by period (transaction only)
+- `S_SYNTAX` now explicitly bans `YEAR()` / `MONTH()` functions (not valid in SuiteQL) — instructs AI to use `TRUNC(t.trandate,'YEAR') = TRUNC(SYSDATE,'YEAR')` pattern instead
+- Example picker bumped from 2 → 3 most-relevant examples included in prompt
+
+**Pie chart fix**
+- NetSuite returns all values as strings — Recharts `PieChart` couldn't compute slice percentages
+- `WidgetRenderer.jsx`: coerces `yAxis` column values to `Number()` before passing to `<PieChart>`, filters out zero/null rows, shows "No numeric data" empty state if nothing is valid
+- Added `<Legend>` to pie chart for readability
+- Re-enabled `labelLine`, `null`-safe label rendering via `String(name ?? '')`
+- Tooltip formatter shows localized number + column name
+
+**Edit widget panel**
+- New slide-in panel (right side) accessible via widget three-dot menu → "Edit widget"
+- Two tabs:
+  - **Columns** — contextual axis/column pickers per chart type:
+    - Bar/Line: X Axis (categories) + Y Axis (values) dropdowns
+    - Pie: Slice labels + Slice values dropdowns
+    - KPI: Value column + optional Label column dropdowns
+    - Table: checkbox list to show/hide individual columns
+  - **Re-ask AI** — editable textarea with original question, Run Query button, shows row count + AI interpretation as preview before committing; Apply replaces query, data, axes, and chart type in one operation
+- `PATCH /api/dashboard/widgets/:id` extended to accept `suiteql_query`, `visualization_config`, `original_question`, `interpretation`, `cached_data` in addition to existing `title`/`visualization_type`
+- New `updateWidgetConfig(widgetId, patch)` Zustand store action
+- `DataTable` accepts `hiddenColumns` prop — merged with always-hidden NetSuite `links` column, reinitializes when column visibility changes
+
+**Key files:**
+- `client/src/components/Dashboard/EditWidgetPanel.jsx` — new component
+- `client/src/components/Dashboard/WidgetCard.jsx` — Edit widget menu item + panel mount
+- `client/src/components/Charts/WidgetRenderer.jsx` — pie fix + hiddenColumns passthrough
+- `client/src/components/Charts/DataTable.jsx` — hiddenColumns support
+- `client/src/store/dashboardStore.js` — `updateWidgetConfig` action
+- `server/routes/dashboard.js` — extended PATCH endpoint
+- `server/services/schemaContext.js` — revenue examples + YEAR()/MONTH() ban

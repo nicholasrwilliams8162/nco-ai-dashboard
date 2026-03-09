@@ -80,7 +80,9 @@ SUITEQL SYNTAX RULES:
 - Booleans: 'T'/'F' (not TRUE/FALSE). Never SELECT *.
 - ROWNUM limit: simple→ WHERE ROWNUM <= N. With GROUP BY → wrap in subquery: SELECT * FROM (...GROUP BY...ORDER BY...) WHERE ROWNUM <= N
 - BUILTIN.DF(field) → display value of any coded/foreign-key field
-- Dates: SYSDATE=today, TRUNC(date,'MONTH'/'QUARTER'/'YEAR'), ADD_MONTHS(SYSDATE,-3), (SYSDATE-30)=30 days ago
+- Dates: SYSDATE=today, TRUNC(date,'MONTH'/'Q'/'YEAR'), ADD_MONTHS(SYSDATE,-3), (SYSDATE-30)=30 days ago
+- Date filtering: NEVER use YEAR() or MONTH() functions — not valid in SuiteQL. Use TRUNC instead: TRUNC(t.trandate,'YEAR')=TRUNC(SYSDATE,'YEAR') for "this year", TRUNC(t.trandate,'MONTH')=TRUNC(SYSDATE,'MONTH') for "this month"
+- Revenue aggregation: use SUM(t.foreigntotal) on the transaction table directly — no transactionline join needed for totals
 - String concat: || operator. UPPER/LOWER/TRIM/SUBSTR/LENGTH/REPLACE supported.
 - LEFT OUTER JOIN whenever relationship may not always exist.
 - CASE WHEN...THEN...ELSE...END supported.`;
@@ -124,13 +126,37 @@ FROM transaction t JOIN transactionline tl ON tl.transaction = t.id AND tl.mainl
 JOIN customer c ON t.entity = c.id WHERE t.type = 'CustInvc' AND tl.item IS NOT NULL`,
   },
   {
-    tags: ['top', 'group by', 'aggregate', 'sum', 'revenue', 'monthly', 'by month'],
-    sql: `-- Top N with GROUP BY (subquery required for ROWNUM):
+    tags: ['top', 'group by', 'aggregate', 'top items', 'best selling', 'by item'],
+    sql: `-- Top N items with GROUP BY (subquery required for ROWNUM):
 SELECT * FROM (
   SELECT BUILTIN.DF(tl.item) AS item_name, SUM(tl.quantity) AS qty, SUM(tl.amount) AS total
   FROM transaction t JOIN transactionline tl ON tl.transaction = t.id AND tl.mainline = 'F' AND tl.taxline = 'F'
   WHERE t.type = 'CustInvc' AND tl.item IS NOT NULL GROUP BY BUILTIN.DF(tl.item) ORDER BY total DESC
 ) WHERE ROWNUM <= 10`,
+  },
+  {
+    tags: ['revenue', 'monthly', 'by month', 'revenue by month', 'monthly revenue', 'sales by month', 'revenue this year', 'revenue trend'],
+    sql: `-- Monthly revenue this year (transaction table only — no transactionline join needed):
+SELECT * FROM (
+  SELECT TRUNC(t.trandate, 'MONTH') AS month, SUM(t.foreigntotal) AS revenue
+  FROM transaction t
+  WHERE t.type = 'CustInvc'
+    AND TRUNC(t.trandate, 'YEAR') = TRUNC(SYSDATE, 'YEAR')
+  GROUP BY TRUNC(t.trandate, 'MONTH')
+  ORDER BY month
+) WHERE ROWNUM <= 500`,
+  },
+  {
+    tags: ['revenue by quarter', 'quarterly revenue', 'by quarter', 'quarter'],
+    sql: `-- Quarterly revenue (use TRUNC with QUARTER — no transactionline needed):
+SELECT * FROM (
+  SELECT TRUNC(t.trandate, 'Q') AS quarter, SUM(t.foreigntotal) AS revenue
+  FROM transaction t
+  WHERE t.type = 'CustInvc'
+    AND TRUNC(t.trandate, 'YEAR') = TRUNC(SYSDATE, 'YEAR')
+  GROUP BY TRUNC(t.trandate, 'Q')
+  ORDER BY quarter
+) WHERE ROWNUM <= 500`,
   },
   {
     tags: ['purchase order', 'purchord', 'po', 'receipt', 'related'],
@@ -154,8 +180,8 @@ function pickExamples(text) {
     ex,
     score: ex.tags.filter(tag => t.includes(tag)).length,
   })).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
-  // Return at most 2 most-relevant examples
-  return scored.slice(0, 2).map(x => x.ex.sql).join('\n\n');
+  // Return at most 3 most-relevant examples
+  return scored.slice(0, 3).map(x => x.ex.sql).join('\n\n');
 }
 
 /**

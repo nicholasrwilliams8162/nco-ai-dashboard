@@ -99,32 +99,54 @@ export function WidgetRenderer({ widget }) {
         </ResponsiveContainer>
       );
 
-    case 'pie':
+    case 'pie': {
+      // NetSuite returns all values as strings — coerce yAxis to numbers so Recharts
+      // can compute slice percentages. Filter out rows with no valid value.
+      const pieData = data
+        .map(d => ({ ...d, [config.yAxis]: Number(d[config.yAxis]) || 0 }))
+        .filter(d => d[config.yAxis] > 0);
+
+      if (pieData.length === 0) {
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-3)', fontSize: 13 }}>
+            No numeric data to display
+          </div>
+        );
+      }
+
       return (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={pieData}
               dataKey={config.yAxis}
               nameKey={config.xAxis}
               cx="50%"
               cy="50%"
-              outerRadius="65%"
-              label={({ name, percent }) => `${truncateLabel(String(name), 10)} ${(percent * 100).toFixed(0)}%`}
-              labelLine={false}
+              outerRadius="60%"
+              label={({ name, percent }) => `${truncateLabel(String(name ?? ''), 10)} ${(percent * 100).toFixed(0)}%`}
+              labelLine={true}
             >
-              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(value) => [Number(value).toLocaleString(), config.yAxis]}
+            />
+            <Legend
+              formatter={(value) => truncateLabel(String(value ?? ''), 16)}
+              wrapperStyle={{ fontSize: 11, color: axisColor }}
+            />
           </PieChart>
         </ResponsiveContainer>
       );
+    }
 
     case 'kpi':
       return <KPIWidget data={data[0]} config={config} />;
 
     case 'table':
     default:
-      return <DataTable data={data} />;
+      return <DataTable data={data} hiddenColumns={config.hiddenColumns || []} />;
   }
 }
