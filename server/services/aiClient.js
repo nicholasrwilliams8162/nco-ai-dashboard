@@ -14,7 +14,6 @@ import db from '../db/database.js';
 
 // Free models tried in order — falls back to next on 429/overload
 const MODELS = [
-  'google/gemini-2.0-flash-exp:free',
   'deepseek/deepseek-chat:free',
   'qwen/qwen2.5-72b-instruct:free',
   'meta-llama/llama-3.3-70b-instruct:free',
@@ -54,7 +53,7 @@ export async function callAI(systemPrompt, messages, userId) {
       lastError = new Error(`Empty response from ${model}`);
     } catch (err) {
       const status = err?.status || err?.response?.status;
-      if (status === 429 || status === 503 || (err.message || '').includes('overloaded')) {
+      if (status === 429 || status === 503 || status === 404 || (err.message || '').includes('overloaded') || (err.message || '').includes('No endpoints')) {
         console.warn(`[AI] ${model} unavailable (${status}), trying next…`);
         lastError = err;
         continue;
