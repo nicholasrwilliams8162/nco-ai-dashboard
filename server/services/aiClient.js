@@ -12,7 +12,13 @@
 import OpenAI from 'openai';
 import db from '../db/database.js';
 
-const MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+// Free models tried in order — falls back to next on 429/overload
+const MODELS = [
+  'google/gemini-2.0-flash-exp:free',
+  'deepseek/deepseek-chat:free',
+  'qwen/qwen2.5-72b-instruct:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+];
 const BASE_URL = 'https://openrouter.ai/api/v1';
 
 export async function callAI(systemPrompt, messages, userId) {
@@ -31,13 +37,30 @@ export async function callAI(systemPrompt, messages, userId) {
     },
   });
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    max_tokens: 4000,
-    response_format: { type: 'json_object' },
-    temperature: 0.1,
-  });
-
-  return response.choices[0].message.content;
+  let lastError;
+  for (const model of MODELS) {
+    try {
+      const response = await client.chat.completions.create({
+        model,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: 4000,
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+      });
+      if (response.choices?.[0]?.message?.content) {
+        if (model !== MODELS[0]) console.log(`[AI] Using fallback model: ${model}`);
+        return response.choices[0].message.content;
+      }
+      lastError = new Error(`Empty response from ${model}`);
+    } catch (err) {
+      const status = err?.status || err?.response?.status;
+      if (status === 429 || status === 503 || (err.message || '').includes('overloaded')) {
+        console.warn(`[AI] ${model} unavailable (${status}), trying next…`);
+        lastError = err;
+        continue;
+      }
+      throw err; // non-rate-limit error — propagate immediately
+    }
+  }
+  throw lastError || new Error('All OpenRouter models unavailable');
 }
