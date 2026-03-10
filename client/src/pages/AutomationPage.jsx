@@ -70,10 +70,48 @@ function AgentForm({ initial, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Test Query state
+  const [testing, setTesting]           = useState(false);
+  const [testResult, setTestResult]     = useState(null); // { plan, query, rows, totalResults, planSummary }
+  const [testError, setTestError]       = useState(null);
+  const [feedback, setFeedback]         = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [acceptedPlan, setAcceptedPlan] = useState(null);
+
   const isCustom = form.schedule === 'custom';
   const effectiveCron = isCustom ? form.customCron : form.schedule;
 
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+  const set = (key, val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    // If instructions change, invalidate any accepted plan
+    if (key === 'instructions') { setAcceptedPlan(null); setTestResult(null); }
+  };
+
+  const handleTest = async (refineFeedback = null) => {
+    if (!form.instructions.trim()) return;
+    setTesting(true);
+    setTestError(null);
+    setShowFeedback(false);
+    try {
+      const { data } = await api.post('/automation/test-query', {
+        instructions: form.instructions.trim(),
+        feedback: refineFeedback || null,
+        previousPlan: refineFeedback ? testResult?.plan : null,
+        agentId: initial?.id || null,
+      });
+      setTestResult(data);
+      setFeedback('');
+    } catch (err) {
+      setTestError(err.response?.data?.error || err.message);
+      setTestResult(null);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleAcceptPlan = () => {
+    setAcceptedPlan(testResult.plan);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,6 +126,7 @@ function AgentForm({ initial, onSave, onCancel }) {
         schedule: effectiveCron.trim(),
         require_approval: form.require_approval,
         notification_frequency: form.notification_frequency,
+        cachedPlan: acceptedPlan || null,
       };
       if (initial?.id) {
         await api.put(`/automation/agents/${initial.id}`, payload);
@@ -141,6 +180,143 @@ function AgentForm({ initial, onSave, onCancel }) {
         <p className="text-xs text-t4 mt-1">
           Plain English. Include what to find, any thresholds, and what action to take.
         </p>
+      </div>
+
+      {/* ── Test Query ─────────────────────────────────────────────────────── */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2.5 bg-card2">
+          <div>
+            <p className="text-sm font-medium text-t1">Test Query</p>
+            <p className="text-xs text-t3">Preview what this agent will find before enabling it live</p>
+          </div>
+          <button
+            type="button"
+            disabled={testing || !form.instructions.trim()}
+            onClick={() => handleTest()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-mid disabled:opacity-40 text-white rounded-md transition-colors"
+          >
+            {testing && !showFeedback ? (
+              <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+            )}
+            {testing && !showFeedback ? 'Running…' : 'Run Test'}
+          </button>
+        </div>
+
+        {testError && (
+          <div className="px-3 py-2.5 text-xs text-red-400 bg-red-900/10 border-t border-border">
+            {testError}
+          </div>
+        )}
+
+        {testResult && (
+          <div className="px-3 py-3 space-y-3 border-t border-border">
+            {/* Query */}
+            <div>
+              <p className="text-xs font-medium text-t3 mb-1">Generated query</p>
+              <pre className="text-xs font-mono text-t2 bg-card2 border border-border rounded-md px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">{testResult.query}</pre>
+            </div>
+
+            {/* Summary */}
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                testResult.totalResults > 0
+                  ? 'bg-green-900/30 text-green-400 border border-green-700/40'
+                  : 'bg-amber-900/30 text-amber-400 border border-amber-700/40'
+              }`}>
+                {testResult.totalResults} record{testResult.totalResults !== 1 ? 's' : ''} found
+              </span>
+              {testResult.planSummary && (
+                <span className="text-xs text-t3 italic">{testResult.planSummary}</span>
+              )}
+            </div>
+
+            {/* Preview rows */}
+            {testResult.rows?.length > 0 && (
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="text-xs w-full">
+                  <thead>
+                    <tr className="bg-card2 border-b border-border">
+                      {Object.keys(testResult.rows[0]).filter(k => k !== 'links').map(k => (
+                        <th key={k} className="px-2 py-1.5 text-left text-t3 font-medium whitespace-nowrap">{k}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testResult.rows.slice(0, 5).map((row, i) => (
+                      <tr key={i} className="border-b border-border last:border-0">
+                        {Object.keys(testResult.rows[0]).filter(k => k !== 'links').map(k => (
+                          <td key={k} className="px-2 py-1.5 text-t2 whitespace-nowrap max-w-[160px] overflow-hidden text-ellipsis">{String(row[k] ?? '')}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {testResult.rows.length > 5 && (
+                  <p className="text-xs text-t4 text-center py-1.5 border-t border-border">
+                    Showing 5 of {testResult.rows.length} preview rows
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            {acceptedPlan ? (
+              <div className="flex items-center gap-2 text-xs text-green-400">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                Query accepted — will be used when agent runs
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleAcceptPlan}
+                  className="px-3 py-1.5 text-xs font-medium bg-green-700/80 hover:bg-green-700 text-white rounded-md transition-colors"
+                >
+                  Accept this query
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFeedback(v => !v)}
+                  className="px-3 py-1.5 text-xs font-medium border border-border text-t2 hover:text-t1 hover:bg-card2 rounded-md transition-colors"
+                >
+                  Results look wrong
+                </button>
+              </div>
+            )}
+
+            {/* Refinement feedback */}
+            {showFeedback && !acceptedPlan && (
+              <div className="space-y-2">
+                <textarea
+                  value={feedback}
+                  onChange={e => setFeedback(e.target.value)}
+                  placeholder="Describe what's wrong — e.g. 'It's showing closed orders too' or 'Amount filter isn't working'"
+                  rows={2}
+                  className="w-full bg-card border border-border text-t1 placeholder-t3 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-accent resize-none"
+                />
+                <button
+                  type="button"
+                  disabled={testing || !feedback.trim()}
+                  onClick={() => handleTest(feedback)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-accent text-accent hover:bg-accent hover:text-white disabled:opacity-40 rounded-md transition-colors"
+                >
+                  {testing ? (
+                    <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                  ) : null}
+                  {testing ? 'Refining…' : 'Refine & retry'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Schedule */}

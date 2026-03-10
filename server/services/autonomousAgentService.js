@@ -190,6 +190,56 @@ async function planExecution(agent) {
   return { plan, rawText: text, client, systemPrompt, userMessages, fromCache: false };
 }
 
+/**
+ * Test an agent's SuiteQL query without creating todos or taking any action.
+ * Supports iterative refinement via feedback + previousPlan.
+ * Returns { plan, rows, totalResults } — no side effects.
+ */
+export async function testAgentQuery(instructions, userId, feedback = null, previousPlan = null, agentId = null) {
+  const client = getGroqClient(userId);
+  const systemPrompt = buildPlannerPrompt(instructions);
+
+  let plan, rawText;
+
+  if (feedback && previousPlan) {
+    // Refinement — send Groq the previous plan + user feedback
+    const messages = [
+      { role: 'user', content: instructions },
+      { role: 'assistant', content: JSON.stringify(previousPlan) },
+      {
+        role: 'user',
+        content: `The query ran but the results don't look right.\nUser feedback: "${feedback}"\nPlease fix the query and return a corrected JSON plan.`,
+      },
+    ];
+    rawText = await callGroq(client, systemPrompt, messages);
+    plan = JSON.parse(rawText);
+
+    // Save correction memory so future runs learn from this
+    if (agentId) {
+      saveMemory(agentId, 'correction',
+        `User said results were wrong: "${feedback}". Query was corrected.`);
+    }
+  } else {
+    // Fresh plan — always bypass cache during testing
+    const tempAgent = { instructions, user_id: userId, cached_plan: null, plan_cached_at: null };
+    const result = await planExecution(tempAgent);
+    plan = result.plan;
+    rawText = result.rawText;
+  }
+
+  if (!plan.query) throw new Error('AI did not produce a SuiteQL query for these instructions.');
+
+  const result = await runMcpSuiteQL(plan.query, userId);
+
+  return {
+    plan,
+    query: plan.query,
+    planSummary: plan.planSummary,
+    rows: result.items.slice(0, 20), // preview only
+    totalResults: result.totalResults,
+  };
+}
+
 export async function executeAgent(agentId) {
   const agent = db.prepare('SELECT * FROM autonomous_agents WHERE id = ?').get(agentId);
   if (!agent) throw new Error(`Agent ${agentId} not found`);

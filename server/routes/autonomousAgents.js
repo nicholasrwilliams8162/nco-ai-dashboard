@@ -1,5 +1,5 @@
 import express from 'express';
-import { executeAgent, executeTodo, denyTodo } from '../services/autonomousAgentService.js';
+import { executeAgent, executeTodo, denyTodo, testAgentQuery } from '../services/autonomousAgentService.js';
 import { scheduleAgent, unscheduleAgent } from '../services/schedulerService.js';
 import db from '../db/database.js';
 
@@ -22,16 +22,34 @@ router.get('/agents', (req, res) => {
   res.json(agents);
 });
 
+// POST /api/automation/test-query — generate + run query without any side effects
+router.post('/test-query', async (req, res) => {
+  const { instructions, feedback, previousPlan, agentId } = req.body;
+  if (!instructions?.trim()) return res.status(400).json({ error: 'instructions is required' });
+  try {
+    const result = await testAgentQuery(
+      instructions.trim(), req.userId,
+      feedback || null, previousPlan || null,
+      agentId || null,
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/automation/agents
 router.post('/agents', (req, res) => {
-  const { name, description, instructions, schedule, require_approval, notification_frequency } = req.body;
+  const { name, description, instructions, schedule, require_approval, notification_frequency, cachedPlan } = req.body;
   if (!name?.trim() || !instructions?.trim() || !schedule?.trim()) {
     return res.status(400).json({ error: 'name, instructions, and schedule are required' });
   }
 
+  const planJson = cachedPlan ? JSON.stringify(cachedPlan) : null;
+
   const result = db.prepare(`
-    INSERT INTO autonomous_agents (name, description, instructions, schedule, require_approval, notification_frequency, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO autonomous_agents (name, description, instructions, schedule, require_approval, notification_frequency, user_id, cached_plan, plan_cached_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
   `).run(
     name.trim(),
     description?.trim() || null,
@@ -40,6 +58,8 @@ router.post('/agents', (req, res) => {
     require_approval ? 1 : 0,
     notification_frequency || 'immediate',
     req.userId,
+    planJson,
+    planJson,
   );
 
   const agent = db.prepare('SELECT * FROM autonomous_agents WHERE id = ?').get(result.lastInsertRowid);
@@ -54,17 +74,18 @@ router.put('/agents/:id', (req, res) => {
 
   const {
     name, description, instructions, schedule,
-    require_approval, notification_frequency, enabled, paused,
+    require_approval, notification_frequency, enabled, paused, cachedPlan,
   } = req.body;
 
   const instructionsChanged = instructions?.trim() && instructions.trim() !== existing.instructions;
+  const planJson = cachedPlan ? JSON.stringify(cachedPlan) : null;
 
   db.prepare(`
     UPDATE autonomous_agents SET
       name = ?, description = ?, instructions = ?, schedule = ?,
       require_approval = ?, notification_frequency = ?, enabled = ?, paused = ?,
-      cached_plan = CASE WHEN ? THEN NULL ELSE cached_plan END,
-      plan_cached_at = CASE WHEN ? THEN NULL ELSE plan_cached_at END,
+      cached_plan = CASE WHEN ? IS NOT NULL THEN ? WHEN ? THEN NULL ELSE cached_plan END,
+      plan_cached_at = CASE WHEN ? IS NOT NULL THEN datetime('now') WHEN ? THEN NULL ELSE plan_cached_at END,
       updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -76,8 +97,8 @@ router.put('/agents/:id', (req, res) => {
     notification_frequency       ?? existing.notification_frequency,
     enabled !== undefined        ? (enabled ? 1 : 0)  : existing.enabled,
     paused !== undefined         ? (paused  ? 1 : 0)  : existing.paused,
-    instructionsChanged ? 1 : 0,
-    instructionsChanged ? 1 : 0,
+    planJson, planJson, instructionsChanged ? 1 : 0,
+    planJson, instructionsChanged ? 1 : 0,
     req.params.id,
   );
 
