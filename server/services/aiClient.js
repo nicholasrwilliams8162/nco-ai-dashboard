@@ -38,8 +38,13 @@ export async function callAI(systemPrompt, messages, userId) {
     },
   });
 
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
   let lastError;
-  for (const model of MODELS) {
+  for (let i = 0; i < MODELS.length; i++) {
+    const model = MODELS[i];
+    if (i > 0) await sleep(2000); // brief pause between fallbacks to avoid account-level rate limits
+
     try {
       const response = await client.chat.completions.create({
         model,
@@ -49,19 +54,20 @@ export async function callAI(systemPrompt, messages, userId) {
         temperature: 0.1,
       });
       if (response.choices?.[0]?.message?.content) {
-        if (model !== MODELS[0]) console.log(`[AI] Using fallback model: ${model}`);
+        if (i > 0) console.log(`[AI] Using fallback model: ${model}`);
         return response.choices[0].message.content;
       }
       lastError = new Error(`Empty response from ${model}`);
     } catch (err) {
       const status = err?.status || err?.response?.status;
-      if (status === 429 || status === 503 || status === 404 || (err.message || '').includes('overloaded') || (err.message || '').includes('No endpoints')) {
+      const msg = err.message || '';
+      if (status === 429 || status === 503 || status === 404 || msg.includes('overloaded') || msg.includes('No endpoints') || msg.includes('Provider returned error')) {
         console.warn(`[AI] ${model} unavailable (${status}), trying next…`);
         lastError = err;
         continue;
       }
-      throw err; // non-rate-limit error — propagate immediately
+      throw err;
     }
   }
-  throw lastError || new Error('All OpenRouter models unavailable');
+  throw lastError || new Error('All OpenRouter models unavailable. Try again in a moment.');
 }
