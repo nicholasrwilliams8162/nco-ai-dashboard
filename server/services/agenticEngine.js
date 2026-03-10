@@ -15,6 +15,24 @@ import { runMcpSuiteQL, getMcpRecordTypeMetadata, callMcpTool, listMcpTools } fr
 import { searchNetSuiteDocs } from './docSearchService.js';
 import db from '../db/database.js';
 
+// ─── Status filter enforcement ────────────────────────────────────────────────
+// LLM consistently adds status filters even when not requested. Enforce in code.
+const STATUS_REQUEST_KEYWORDS = /\b(open|unbilled|not billed|not closed|overdue|pending approval|past due)\b/i;
+
+function enforceStatusFilterRule(query, userText) {
+  if (!query || STATUS_REQUEST_KEYWORDS.test(userText || '')) return query;
+  let cleaned = query;
+  cleaned = cleaned.replace(/\s*AND\s+BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'/gi, '');
+  cleaned = cleaned.replace(/BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'\s*AND\s*/gi, '');
+  cleaned = cleaned.replace(/BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'/gi, '');
+  cleaned = cleaned.replace(/\bWHERE\s+AND\b/gi, 'WHERE');
+  cleaned = cleaned.replace(/\bAND\s+ORDER\b/gi, 'ORDER');
+  cleaned = cleaned.replace(/\bWHERE\s+ORDER\b/gi, 'ORDER');
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+  if (cleaned !== query) console.log('[Engine] Stripped unsolicited status filter from query');
+  return cleaned;
+}
+
 // ─── Groq client ──────────────────────────────────────────────────────────────
 
 function getGroqClient(userId) {
@@ -164,7 +182,7 @@ RULES:
  * @param {number} maxIterations
  * @returns {object} finalAnswer payload
  */
-async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, maxIterations) {
+async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, maxIterations, userText = '') {
   const client = getGroqClient(userId);
   const messages = [...initialMessages];
   let toolCallCount = 0;
@@ -222,6 +240,7 @@ async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, max
 
     if (action === 'runSuiteQL') {
       try {
+        step.query = enforceStatusFilterRule(step.query, userText);
         lastQueryResult = await runMcpSuiteQL(step.query, userId);
         if (lastQueryResult.totalResults === 0) {
           // Give Groq a hint to try alternate approaches instead of giving up
@@ -297,6 +316,7 @@ export async function processNaturalLanguageQuery(userQuestion, userId) {
     initialMessages,
     userId,
     5, // max 5 tool calls — allows one retry when CustInvc returns 0 rows
+    userQuestion,
   );
 
   if (step.action === 'finalAnswer') {
@@ -348,6 +368,7 @@ export async function planAgentAction(instruction, clarifications = [], userId) 
     messages,
     userId,
     5, // max 5 tool calls for agent writes
+    instruction,
   );
 
   if (step.action === 'clarify') {

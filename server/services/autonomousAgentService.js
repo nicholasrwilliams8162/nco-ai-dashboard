@@ -147,6 +147,54 @@ function saveMemory(agentId, type, summary) {
   `).run(agentId, type, summary);
 }
 
+// Keywords that legitimately justify a status filter in the WHERE clause
+const STATUS_KEYWORDS = /\b(open|unbilled|not billed|not closed|overdue|pending approval|past due)\b/i;
+
+/**
+ * Post-process a Groq-generated SuiteQL query to strip status filters that
+ * were not requested. The LLM has a strong bias toward adding status filters
+ * even when instructions don't ask for them — this enforces the rule in code.
+ *
+ * Only removes BUILTIN.DF(x.status) LIKE/NOT LIKE conditions.
+ * Leaves all other conditions untouched.
+ */
+function enforceStatusFilterRule(query, instructions) {
+  if (STATUS_KEYWORDS.test(instructions)) return query; // user asked for filtered results — keep as-is
+
+  // Strip BUILTIN.DF(...status...) [NOT] LIKE '...' fragments from the WHERE clause.
+  // Handles AND on either side, multiple conditions, any alias.
+  let cleaned = query;
+
+  // Pattern: AND BUILTIN.DF(alias.status) [NOT] LIKE '...'
+  //       or BUILTIN.DF(alias.status) [NOT] LIKE '...' AND
+  //       or standalone
+  cleaned = cleaned.replace(
+    /\s*AND\s+BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'/gi,
+    ''
+  );
+  // catch leading condition (if it was the first WHERE clause item)
+  cleaned = cleaned.replace(
+    /BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'\s*AND\s*/gi,
+    ''
+  );
+  // catch orphaned standalone (no surrounding AND)
+  cleaned = cleaned.replace(
+    /BUILTIN\.DF\(\w+\.status\)\s+(?:NOT\s+)?LIKE\s+'[^']*'/gi,
+    ''
+  );
+
+  // Clean up any double spaces or trailing AND/WHERE with nothing after it
+  cleaned = cleaned.replace(/\bWHERE\s+AND\b/gi, 'WHERE');
+  cleaned = cleaned.replace(/\bAND\s+ORDER\b/gi, 'ORDER');
+  cleaned = cleaned.replace(/\bWHERE\s+ORDER\b/gi, 'ORDER');
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+
+  if (cleaned !== query) {
+    console.log('[AutoAgent] Stripped unsolicited status filter from query');
+  }
+  return cleaned;
+}
+
 // Check if the cached plan is still valid (no new memories since it was cached)
 function isCacheValid(agent) {
   if (!agent.cached_plan || !agent.plan_cached_at) return false;
@@ -183,12 +231,18 @@ async function planExecution(agent) {
   const text = await callGroq(client, systemPrompt, userMessages);
   const plan = JSON.parse(text);
 
-  // Cache the successful plan
+  // Deterministically enforce status filter rule (LLM often ignores prompt guidance)
+  if (plan.query) {
+    plan.query = enforceStatusFilterRule(plan.query, agent.instructions);
+  }
+
+  // Cache the successful plan (after enforcement so cache is also clean)
+  const cachedText = JSON.stringify(plan);
   db.prepare(`
     UPDATE autonomous_agents SET cached_plan = ?, plan_cached_at = datetime('now') WHERE id = ?
-  `).run(text, agent.id);
+  `).run(cachedText, agent.id);
 
-  return { plan, rawText: text, client, systemPrompt, userMessages, fromCache: false };
+  return { plan, rawText: cachedText, client, systemPrompt, userMessages, fromCache: false };
 }
 
 /**
@@ -233,6 +287,10 @@ export async function testAgentQuery(instructions, userId, { feedback, previousP
   }
 
   if (!query) throw new Error('AI did not produce a SuiteQL query for these instructions.');
+
+  // Enforce status filter rule regardless of which path generated the query
+  query = enforceStatusFilterRule(query, instructions);
+  plan = { ...plan, query };
 
   const result = await runMcpSuiteQL(query, userId);
 
