@@ -12,12 +12,13 @@
 import OpenAI from 'openai';
 import db from '../db/database.js';
 
-// Free models tried in order — falls back to next on 429/overload
+// Free models tried in order — all verified against OpenRouter /models endpoint
 const MODELS = [
   'stepfun/step-3.5-flash:free',
   'qwen/qwen3-next-80b-a3b-instruct:free',
   'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen2.5-72b-instruct:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+  'google/gemma-3-27b-it:free',
 ];
 const BASE_URL = 'https://openrouter.ai/api/v1';
 
