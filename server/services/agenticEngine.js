@@ -8,8 +8,8 @@
  * Agent writes:     planAgentAction(), executeAgentPlan()
  */
 
-import Groq from 'groq-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { callAI } from './aiClient.js';
 import { buildSchemaContext } from './schemaContext.js';
 import { runMcpSuiteQL, getMcpRecordTypeMetadata, callMcpTool, listMcpTools } from './mcpClient.js';
 import { searchNetSuiteDocs } from './docSearchService.js';
@@ -33,26 +33,6 @@ function enforceStatusFilterRule(query, userText) {
   return cleaned;
 }
 
-// ─── Groq client ──────────────────────────────────────────────────────────────
-
-function getGroqClient(userId) {
-  const row = userId
-    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").get(userId)
-    : db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
-  const apiKey = row?.value || process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('Groq API key is not configured. Add it in Settings.');
-  return new Groq({ apiKey });
-}
-
-async function callGroq(client, systemPrompt, messages, maxTokens = 4000) {
-  const response = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    max_tokens: maxTokens,
-    response_format: { type: 'json_object' },
-  });
-  return response.choices[0].message.content;
-}
 
 function parseJson(text) {
   const stripped = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '');
@@ -183,7 +163,6 @@ RULES:
  * @returns {object} finalAnswer payload
  */
 async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, maxIterations, userText = '') {
-  const client = getGroqClient(userId);
   const messages = [...initialMessages];
   let toolCallCount = 0;
   let lastQueryResult = null;
@@ -192,7 +171,7 @@ async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, max
   const actionCounts = {};
 
   while (toolCallCount < maxIterations) {
-    const rawText = await callGroq(client, systemPrompt, messages);
+    const rawText = await callAI(systemPrompt, messages, userId);
     let step;
     try {
       step = parseJson(rawText);
@@ -231,7 +210,7 @@ async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, max
         role: 'user',
         content: `You have called "${action}" ${actionCounts[action]} times. You MUST now return a finalAnswer${intent === 'widget_query' ? ' with the best query result you have' : ''}.`,
       });
-      const forceText = await callGroq(client, systemPrompt, messages);
+      const forceText = await callAI(systemPrompt, messages, userId);
       return { step: parseJson(forceText), lastQueryResult };
     }
 
@@ -300,7 +279,7 @@ async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, max
     role: 'user',
     content: `You have reached the tool call limit (${maxIterations}). You MUST return a finalAnswer now${lastQueryResult ? ' using the last successful query result' : ''}.`,
   });
-  const finalText = await callGroq(client, systemPrompt, messages);
+  const finalText = await callAI(systemPrompt, messages, userId);
   return { step: parseJson(finalText), lastQueryResult };
 }
 

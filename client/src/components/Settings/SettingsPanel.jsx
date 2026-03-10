@@ -65,7 +65,7 @@ function StyledInput({ type = 'text', value, onChange, onKeyDown, placeholder, m
 }
 
 export function SettingsPanel({ onClose, initialError }) {
-  const { authStatus, groqKeySet, checkAuth } = useDashboardStore();
+  const { authStatus, geminiKeySet, checkAuth } = useDashboardStore();
   const [accountId, setAccountId] = useState(authStatus.accountId || '');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
@@ -74,20 +74,20 @@ export function SettingsPanel({ onClose, initialError }) {
   const [error, setError] = useState(initialError || null);
   const [showSetup, setShowSetup] = useState(false);
 
-  const [groqKey, setGroqKey] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [keyError, setKeyError] = useState(null);
   const [keySaved, setKeySaved] = useState(false);
 
-  const handleSaveGroqKey = async () => {
-    if (!groqKey.trim()) { setKeyError('API key is required.'); return; }
+  const handleSaveGeminiKey = async () => {
+    if (!geminiKey.trim()) { setKeyError('API key is required.'); return; }
     setIsSavingKey(true);
     setKeyError(null);
     setKeySaved(false);
     try {
-      await api.post('/auth/settings', { groqApiKey: groqKey.trim() });
+      await api.post('/auth/settings', { geminiApiKey: geminiKey.trim() });
       await checkAuth();
-      setGroqKey('');
+      setGeminiKey('');
       setKeySaved(true);
       setTimeout(() => setKeySaved(false), 3000);
     } catch {
@@ -288,13 +288,13 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
           )}
 
-          {/* Groq API Key */}
+          {/* Gemini API Key */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', margin: 0 }}>
-                Groq API Key
+                Gemini API Key
               </p>
-              {groqKeySet ? (
+              {geminiKeySet ? (
                 <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--green-light)', color: 'var(--green)', borderRadius: 6, fontWeight: 700 }}>
                   Saved
                 </span>
@@ -308,15 +308,15 @@ export function SettingsPanel({ onClose, initialError }) {
               <div style={{ flex: 1 }}>
                 <StyledInput
                   type="password"
-                  value={groqKey}
-                  onChange={e => setGroqKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveGroqKey()}
-                  placeholder={groqKeySet ? 'Enter new key to replace…' : 'gsk_…'}
+                  value={geminiKey}
+                  onChange={e => setGeminiKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveGeminiKey()}
+                  placeholder={geminiKeySet ? 'Enter new key to replace…' : 'AIza…'}
                   mono
                 />
               </div>
               <button
-                onClick={handleSaveGroqKey}
+                onClick={handleSaveGeminiKey}
                 disabled={isSavingKey}
                 style={{
                   flexShrink: 0, padding: '10px 16px',
@@ -330,7 +330,7 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
             {keyError && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{keyError}</p>}
             <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }}>
-              Get a free key at <span style={{ color: 'var(--text-2)' }}>console.groq.com</span>. Never sent to the browser after saving.
+              Get a free key at <span style={{ color: 'var(--text-2)' }}>aistudio.google.com</span>. Model: Gemini 2.0 Flash. Never sent to the browser after saving.
             </p>
           </div>
         </div>

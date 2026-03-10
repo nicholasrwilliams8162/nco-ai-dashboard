@@ -134,21 +134,21 @@ router.get('/netsuite/callback', async (req, res) => {
 
 // GET /api/auth/settings — returns which keys are set (never the values)
 router.get('/settings', requireClerkAuth, (req, res) => {
-  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").get(req.userId);
-  const envKey = process.env.GROQ_API_KEY;
+  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'gemini_api_key'").get(req.userId);
+  const envKey = process.env.GEMINI_API_KEY;
   const isSet = !!(row?.value || envKey);
-  res.json({ groqKeySet: isSet });
+  res.json({ geminiKeySet: isSet });
 });
 
 // POST /api/auth/settings — save API keys
 router.post('/settings', requireClerkAuth, (req, res) => {
-  const { groqApiKey } = req.body;
-  if (groqApiKey !== undefined) {
-    if (!groqApiKey.trim()) {
-      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").run(req.userId);
+  const { geminiApiKey } = req.body;
+  if (geminiApiKey !== undefined) {
+    if (!geminiApiKey.trim()) {
+      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'gemini_api_key'").run(req.userId);
     } else {
-      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'groq_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
-        .run(req.userId, groqApiKey.trim());
+      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'gemini_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
+        .run(req.userId, geminiApiKey.trim());
     }
   }
   res.json({ ok: true });

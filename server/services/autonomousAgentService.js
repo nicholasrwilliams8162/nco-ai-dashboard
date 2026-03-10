@@ -1,16 +1,7 @@
-import Groq from 'groq-sdk';
+import { callAI } from './aiClient.js';
 import { buildSchemaContext } from './schemaContext.js';
 import { runMcpSuiteQL, callMcpTool } from './mcpClient.js';
 import db from '../db/database.js';
-
-function getGroqClient(userId) {
-  const row = userId
-    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'groq_api_key'").get(userId)
-    : db.prepare("SELECT value FROM app_settings WHERE key = 'groq_api_key'").get();
-  const apiKey = row?.value || process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('Groq API key is not configured. Add it in Settings.');
-  return new Groq({ apiKey });
-}
 
 // Runtime tokens that must be resolved at execution time, not at plan time
 const RUNTIME_TOKENS = new Set(['NOW_UNIX', 'NOW_ISO', 'NOW_DATE']);
@@ -112,16 +103,6 @@ CRITICAL — REST API recordType names (use EXACTLY, all lowercase, no spaces):
 Today: ${new Date().toISOString().split('T')[0]}`;
 }
 
-async function callGroq(client, systemPrompt, messages) {
-  const response = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    max_tokens: 2000,
-    response_format: { type: 'json_object' },
-  });
-  return response.choices[0].message.content;
-}
-
 function getAgentMemories(agentId) {
   // Return at most 3 per type (approved, denied, correction) — deduplication by recency
   const rows = db.prepare(`
@@ -213,8 +194,6 @@ async function planExecution(agent) {
     return { plan, rawText: agent.cached_plan, client: null, systemPrompt: null, userMessages: null, fromCache: true };
   }
 
-  const client = getGroqClient(agent.user_id);
-
   const memories = getAgentMemories(agent.id);
   let memoryBlock = '';
   if (memories.length > 0) {
@@ -228,7 +207,7 @@ async function planExecution(agent) {
   const systemPrompt = buildPlannerPrompt(agent.instructions) + memoryBlock;
   const userMessages = [{ role: 'user', content: agent.instructions }];
 
-  const text = await callGroq(client, systemPrompt, userMessages);
+  const text = await callAI(systemPrompt, userMessages, agent.user_id);
   const plan = JSON.parse(text);
 
   // Deterministically enforce status filter rule (LLM often ignores prompt guidance)
@@ -242,7 +221,7 @@ async function planExecution(agent) {
     UPDATE autonomous_agents SET cached_plan = ?, plan_cached_at = datetime('now') WHERE id = ?
   `).run(cachedText, agent.id);
 
-  return { plan, rawText: cachedText, client, systemPrompt, userMessages, fromCache: false };
+  return { plan, rawText: cachedText, systemPrompt, userMessages, fromCache: false };
 }
 
 /**
@@ -261,8 +240,7 @@ export async function testAgentQuery(instructions, userId, { feedback, previousP
       saveMemory(agentId, 'correction', `User manually edited the query to: "${query.slice(0, 120)}"`);
     }
   } else if (feedback && previousPlan) {
-    // Refinement — send Groq the previous plan + user feedback
-    const client = getGroqClient(userId);
+    // Refinement — send AI the previous plan + user feedback
     const systemPrompt = buildPlannerPrompt(instructions);
     const messages = [
       { role: 'user', content: instructions },
@@ -272,7 +250,7 @@ export async function testAgentQuery(instructions, userId, { feedback, previousP
         content: `The query ran but the results don't look right.\nUser feedback: "${feedback}"\nPlease fix the query and return a corrected JSON plan.`,
       },
     ];
-    const rawText = await callGroq(client, systemPrompt, messages);
+    const rawText = await callAI(systemPrompt, messages, userId);
     plan = JSON.parse(rawText);
     query = plan.query;
     if (agentId) {
@@ -341,9 +319,7 @@ export async function executeAgent(agentId) {
       }
 
       try {
-        // Need a live client for correction — get one if we were on cache
-        const corrClient = client ?? getGroqClient(agent.user_id);
-        const corrSystemPrompt = systemPrompt ?? (buildPlannerPrompt(agent.instructions));
+        const corrSystemPrompt = systemPrompt ?? buildPlannerPrompt(agent.instructions);
         const corrUserMessages = userMessages ?? [{ role: 'user', content: agent.instructions }];
 
         const correctionMessages = [
@@ -354,7 +330,7 @@ export async function executeAgent(agentId) {
             content: `Query failed: "${firstErr.message}".\nFailed query:\n${failedQuery}\nFix it and return the corrected JSON plan.`,
           },
         ];
-        const correctedText = await callGroq(corrClient, corrSystemPrompt, correctionMessages);
+        const correctedText = await callAI(corrSystemPrompt, correctionMessages, agent.user_id);
         plan = JSON.parse(correctedText);
         if (!plan.query) throw new Error('Corrected plan has no query');
         console.log(`[AutoAgent] Corrected query:\n${plan.query}`);
