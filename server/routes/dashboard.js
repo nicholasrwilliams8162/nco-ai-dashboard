@@ -2,7 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import pLimit from 'p-limit';
 import db from '../db/database.js';
-import { refreshWidgetData } from '../services/aiService.js';
+import { refreshWidgetData } from '../services/agenticEngine.js';
 
 const router = express.Router();
 const limit = pLimit(5); // max 5 concurrent NetSuite calls

@@ -1,3 +1,5 @@
+import { isCurrencyColumn, formatCurrency } from './currencyUtils';
+
 export function KPIWidget({ data, config }) {
   if (!data) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-3)', fontSize: 13 }}>
@@ -10,12 +12,14 @@ export function KPIWidget({ data, config }) {
   const value = data[valueKey];
   const label = labelKey ? data[labelKey] : null;
 
-  const isCurrency = typeof value === 'number' && valueKey?.toLowerCase().includes('amount');
+  const isCurrency = isCurrencyColumn(valueKey);
 
   const formatted =
-    typeof value === 'number'
-      ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-      : value;
+    isCurrency && (typeof value === 'number' || !isNaN(Number(value)))
+      ? formatCurrency(value)
+      : typeof value === 'number'
+        ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+        : value;
 
   return (
     <div style={{
@@ -30,7 +34,7 @@ export function KPIWidget({ data, config }) {
         color: 'var(--text-1)',
         lineHeight: 1,
         textAlign: 'center',
-        fontFamily: isCurrency ? 'DM Mono, monospace' : 'inherit',
+        fontFamily: 'DM Mono, monospace',
         wordBreak: 'break-word',
       }}>
         {formatted}

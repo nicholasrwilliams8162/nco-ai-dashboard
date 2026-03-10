@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import DTLib from 'datatables.net-dt';
 import 'datatables.net-dt/css/dataTables.dataTables.css';
+import { isCurrencyColumn, formatCurrency } from './currencyUtils';
 
 // NetSuite always injects a 'links' column — strip it entirely
 const NS_HIDDEN = new Set(['links', 'Links']);
@@ -14,7 +15,18 @@ export function DataTable({ data, hiddenColumns = [] }) {
 
     const hidden = new Set([...NS_HIDDEN, ...hiddenColumns]);
     const keys = Object.keys(data[0]).filter(k => !hidden.has(k));
-    const columns = keys.map(key => ({ title: key, data: key, defaultContent: '' }));
+    const columns = keys.map(key => ({
+      title: key,
+      data: key,
+      defaultContent: '',
+      ...(isCurrencyColumn(key) ? {
+        render: (val) => {
+          if (val === '' || val === null || val === undefined) return '';
+          const num = Number(val);
+          return isNaN(num) ? val : formatCurrency(num);
+        },
+      } : {}),
+    }));
     const rows = data.map(row => Object.fromEntries(keys.map(k => [k, row[k] ?? ''])));
 
     // Destroy any existing instance — including stale HMR ones not tracked by dtRef

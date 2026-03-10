@@ -5,6 +5,8 @@ import {
 import { DataTable } from './DataTable';
 import { KPIWidget } from './KPIWidget';
 
+import { isCurrencyColumn, formatCurrency, formatCurrencyCompact } from './currencyUtils';
+
 const COLORS = ['#3B82F6', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
 
 // These are dynamically resolved from CSS vars at render time so both themes look right
@@ -60,6 +62,9 @@ export function WidgetRenderer({ widget }) {
   const { tooltipStyle, gridStroke, axisColor } = getThemeStyles();
   const tickStyle = { ...axisStyle, fill: axisColor };
 
+  const yIsCurrency = isCurrencyColumn(config.yAxis);
+  const yAxisWidth = yIsCurrency ? 70 : 40;
+
   switch (type) {
     case 'bar':
       return (
@@ -74,8 +79,15 @@ export function WidgetRenderer({ widget }) {
               interval="preserveStartEnd"
               tickFormatter={v => truncateLabel(String(v))}
             />
-            <YAxis tick={tickStyle} width={40} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <YAxis
+              tick={tickStyle}
+              width={yAxisWidth}
+              tickFormatter={yIsCurrency ? formatCurrencyCompact : undefined}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={yIsCurrency ? (value) => [formatCurrency(value), config.yAxis] : undefined}
+            />
             <Bar dataKey={config.yAxis} fill={COLORS[0]} radius={[4, 4, 0, 0]} maxBarSize={60} />
           </BarChart>
         </ResponsiveContainer>
@@ -92,8 +104,15 @@ export function WidgetRenderer({ widget }) {
               interval="preserveStartEnd"
               tickFormatter={v => truncateLabel(String(v))}
             />
-            <YAxis tick={tickStyle} width={40} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <YAxis
+              tick={tickStyle}
+              width={yAxisWidth}
+              tickFormatter={yIsCurrency ? formatCurrencyCompact : undefined}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={yIsCurrency ? (value) => [formatCurrency(value), config.yAxis] : undefined}
+            />
             <Line type="monotone" dataKey={config.yAxis} stroke={COLORS[0]} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -131,7 +150,7 @@ export function WidgetRenderer({ widget }) {
             </Pie>
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(value) => [Number(value).toLocaleString(), config.yAxis]}
+              formatter={(value) => [yIsCurrency ? formatCurrency(value) : Number(value).toLocaleString(), config.yAxis]}
             />
             <Legend
               formatter={(value) => truncateLabel(String(value ?? ''), 16)}

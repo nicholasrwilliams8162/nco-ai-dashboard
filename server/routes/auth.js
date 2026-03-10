@@ -56,7 +56,7 @@ router.post('/netsuite/initiate', requireClerkAuth, (req, res) => {
     response_type: 'code',
     client_id: clientId,
     redirect_uri: REDIRECT_URI,
-    scope: 'rest_webservices',
+    scope: 'mcp',
     state,
     code_challenge: challenge,
     code_challenge_method: 'S256',

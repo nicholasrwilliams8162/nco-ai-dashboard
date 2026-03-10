@@ -81,8 +81,15 @@ RULES:
 - If runSuiteQL fails, use getRecordTypeMetadata to verify actual field names on the relevant record type, then retry with a corrected query.
 - Use searchDocs only if getRecordTypeMetadata is unavailable or the syntax question is about SuiteQL itself.
 - NEVER retry the exact same query that already failed with the same error.
-- When runSuiteQL succeeds, call finalAnswer immediately — include the successful query string in the "query" field.
+- When runSuiteQL returns 0 rows AND your query filtered on a specific transaction type (e.g. type = 'CustInvc'), try a DIFFERENT type before giving up. For revenue/sales queries: try SalesOrd, then CashSale, then remove the type filter entirely to see what data exists.
+- When runSuiteQL succeeds with > 0 rows, call finalAnswer immediately — include the successful query string in the "query" field.
 - finalAnswer.query MUST be the query that produced the result (copy it exactly).
+
+TRANSACTION TYPE GUIDANCE (for revenue/sales queries):
+- Not all NetSuite accounts use invoices (CustInvc). Many accounts book revenue via SalesOrd (sales orders).
+- If CustInvc returns 0 rows, try SalesOrd next. Use foreigntotal for amounts.
+- SalesOrd "open" status: BUILTIN.DF(status) NOT LIKE '%Billed%' AND BUILTIN.DF(status) NOT LIKE '%Closed%' (LIKE '%Open%' matches nothing)
+- For "revenue this year/month": GROUP BY trandate or TRUNC(trandate, 'MONTH'), SUM(foreigntotal) AS revenue
 
 VISUALIZATION:
 - bar: comparisons across categories
@@ -216,7 +223,20 @@ async function runAgenticLoop(intent, systemPrompt, initialMessages, userId, max
     if (action === 'runSuiteQL') {
       try {
         lastQueryResult = await runMcpSuiteQL(step.query, userId);
-        toolResultText = `[Tool: runSuiteQL — SUCCESS]\nReturned ${lastQueryResult.totalResults} row(s).\nFirst rows: ${JSON.stringify(lastQueryResult.items.slice(0, 3))}`;
+        if (lastQueryResult.totalResults === 0) {
+          // Give Groq a hint to try alternate approaches instead of giving up
+          const queryUpper = (step.query || '').toUpperCase();
+          let zeroHint = '';
+          if (queryUpper.includes("'CUSTINVC'") || queryUpper.includes("TYPE = 'CUSTINVC'")) {
+            zeroHint = ' HINT: CustInvc returned 0 rows — this account likely uses SalesOrd for revenue. Retry with type = \'SalesOrd\'.';
+          } else if (queryUpper.includes("TYPE =") || queryUpper.includes("TYPE='")) {
+            zeroHint = ' HINT: 0 rows with type filter — try removing the type filter or using a different transaction type (SalesOrd, CashSale, CustInvc).';
+          }
+          toolResultText = `[Tool: runSuiteQL — SUCCESS]\nReturned 0 row(s).${zeroHint}`;
+          lastQueryResult = null; // Don't treat 0 rows as a usable result
+        } else {
+          toolResultText = `[Tool: runSuiteQL — SUCCESS]\nReturned ${lastQueryResult.totalResults} row(s).\nFirst rows: ${JSON.stringify(lastQueryResult.items.slice(0, 3))}`;
+        }
       } catch (err) {
         toolResultText = `[Tool: runSuiteQL — ERROR]\n${err.message}`;
         lastQueryResult = null;
@@ -276,7 +296,7 @@ export async function processNaturalLanguageQuery(userQuestion, userId) {
     systemPrompt,
     initialMessages,
     userId,
-    3, // max 3 tool calls for widget queries
+    5, // max 5 tool calls — allows one retry when CustInvc returns 0 rows
   );
 
   if (step.action === 'finalAnswer') {

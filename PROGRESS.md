@@ -490,3 +490,57 @@ Requires NetSuite-side setup before MCP calls succeed:
 **Old files kept but no longer imported** (safe to delete after MCP validation):
 - `server/services/aiService.js`
 - `server/services/agentService.js`
+
+---
+
+### MCP Pipeline Fully Validated — 2026-03-10 (complete)
+
+End-to-end MCP integration confirmed working against a live NetSuite trial account (TSTDRV2309831).
+
+**Root causes fixed:**
+
+1. **OAuth scope** — Changed from `rest_webservices` to `mcp` in `auth.js`. These scopes are mutually exclusive; the MCP endpoint rejects REST-scoped tokens with 401. A new integration record with *only* "NetSuite AI Connector Service" checked is required.
+
+2. **MCP Protocol Version** — Updated header and initialize params from `2025-03-26` → `2025-06-18`.
+
+3. **Wrong tool name** — Changed `runSuiteQL` → `ns_runCustomSuiteQL` (the actual MCP tool name).
+
+4. **Wrong parameter name** — Changed `query` → `sqlQuery` for `ns_runCustomSuiteQL`.
+
+5. **Response shape mismatch** — `ns_runCustomSuiteQL` returns `{ data: [...], resultCount: N, numberOfPages: N }`, not `{ items: [...] }`. Added correct parsing branch in `runMcpSuiteQL()`.
+
+6. **Metadata tool** — Changed `ns_getRecordTypeMetadata` → `ns_getSuiteQLMetadata`. New response shape: `{ success, metadata: { properties: { fieldName: { title, type, nullable, x-n:joinable } } } }`.
+
+7. **dashboard.js stale import** — `refreshWidgetData` was still imported from `aiService.js`. Changed to `agenticEngine.js`.
+
+**NetSuite setup required (one-time):**
+- Integration record: *only* "NetSuite AI Connector Service" scope checked (cannot be combined with REST Web Services)
+- Role: "MCP Server Connection" permission added
+- Bundle 522506 (MCP Standard Tools SuiteApp) installed
+
+**Zero-row self-correction** — Agentic engine now detects when a revenue query returns 0 rows due to filtering on `CustInvc` (a transaction type that may not exist in all accounts). It sets `lastQueryResult = null` and injects a targeted hint instructing Groq to retry with `SalesOrd`. Widget query `maxIterations` raised from 3 → 5 to allow the retry without hitting the cap.
+
+---
+
+### Currency Formatting — 2026-03-10 (complete)
+
+Numeric values that represent money are now automatically formatted as USD currency (`$1,234.56`) across all widget types.
+
+**Detection** — `isCurrencyColumn(key)` in `currencyUtils.js` matches column names containing: amount, total, revenue, balance, price, cost, value, subtotal, tax, payment, sales, income, expense, budget, profit, margin.
+
+**Chart widgets (bar / line):**
+- Y-axis ticks: compact format (`$48.5K`, `$1.2M`) via `formatCurrencyCompact()`
+- Tooltips: full format (`$48,472.43`) via `formatCurrency()`
+- Y-axis width auto-expands to 70px for currency columns (was 40px)
+
+**Pie chart:** tooltip shows full currency format.
+
+**KPI widget:** detects currency column by name and formats with `$` sign.
+
+**Data table:** DataTables `render` function formats currency columns inline.
+
+**Key files:**
+- `client/src/components/Charts/currencyUtils.js` — shared helpers (new)
+- `client/src/components/Charts/WidgetRenderer.jsx` — chart formatting
+- `client/src/components/Charts/KPIWidget.jsx` — KPI formatting
+- `client/src/components/Charts/DataTable.jsx` — table column rendering

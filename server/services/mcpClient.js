@@ -48,7 +48,7 @@ async function mcpRequest(method, params = undefined, userId = null) {
       Authorization: `Bearer ${token.access_token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json, text/event-stream',
-      'MCP-Protocol-Version': '2025-03-26',
+      'MCP-Protocol-Version': '2025-06-18',
     },
     timeout: 30000,
   });
@@ -65,7 +65,7 @@ async function mcpRequest(method, params = undefined, userId = null) {
 // We send it before every real request since the endpoint is stateless.
 async function mcpInitialize(userId = null) {
   await mcpRequest('initialize', {
-    protocolVersion: '2025-03-26',
+    protocolVersion: '2025-06-18',
     capabilities: { roots: { listChanged: false }, sampling: {} },
     clientInfo: { name: 'netsuite-ai-dashboard', version: '1.0.0' },
   }, userId);
@@ -122,7 +122,7 @@ export async function runMcpSuiteQL(query, userId = null) {
     console.log('[MCP SuiteQL] Auto-corrected to:\n', sanitized);
   }
 
-  const mcpResult = await callMcpTool('runSuiteQL', { query: sanitized }, userId);
+  const mcpResult = await callMcpTool('ns_runCustomSuiteQL', { sqlQuery: sanitized, description: 'Dashboard query' }, userId);
 
   if (mcpResult.isError) {
     throw new Error(`NetSuite MCP SuiteQL error: ${mcpResult.text}`);
@@ -139,7 +139,32 @@ export async function runMcpSuiteQL(query, userId = null) {
 
   // Handle known response shapes
   if (Array.isArray(parsed)) {
+    // Error: [{ error: "..." }]
+    if (parsed.length === 1 && parsed[0]?.error) {
+      throw new Error(`NetSuite SuiteQL error: ${parsed[0].error}`);
+    }
+    // ns_runCustomSuiteQL shape: [{ data: [...], resultCount: N, numberOfPages: N, ... }]
+    if (parsed.length === 1 && parsed[0]?.data !== undefined) {
+      const r = parsed[0];
+      return {
+        items: r.data || [],
+        totalResults: r.resultCount ?? r.data?.length ?? 0,
+        hasMore: (r.numberOfPages ?? 1) > 1,
+      };
+    }
     return { items: parsed, totalResults: parsed.length, hasMore: false };
+  }
+  // Error returned as object: { error: "..." }
+  if (parsed.error) {
+    throw new Error(`NetSuite SuiteQL error: ${parsed.error}`);
+  }
+  // ns_runCustomSuiteQL shape: { data: [...], resultCount: N, numberOfPages: N, ... }
+  if (parsed.data !== undefined) {
+    return {
+      items: parsed.data || [],
+      totalResults: parsed.resultCount ?? parsed.data?.length ?? 0,
+      hasMore: (parsed.numberOfPages ?? 1) > 1,
+    };
   }
   if (parsed.items !== undefined) {
     return {
@@ -160,24 +185,33 @@ export async function runMcpSuiteQL(query, userId = null) {
  * human-readable text block suitable for injection into a Groq system prompt.
  */
 export async function getMcpRecordTypeMetadata(recordType, userId = null) {
-  const mcpResult = await callMcpTool('ns_getRecordTypeMetadata', { recordType }, userId);
+  const mcpResult = await callMcpTool('ns_getSuiteQLMetadata', { recordType }, userId);
 
   if (mcpResult.isError) {
     throw new Error(`NetSuite MCP metadata error: ${mcpResult.text}`);
   }
 
-  let fields;
+  let parsed;
   try {
-    const parsed = JSON.parse(mcpResult.text);
-    // The SuiteApp may return { fields: [...] } or an array directly
-    fields = Array.isArray(parsed) ? parsed : parsed.fields || parsed.body || [];
+    parsed = JSON.parse(mcpResult.text);
   } catch {
     return mcpResult.text?.slice(0, 1500) || '';
   }
 
-  if (!fields.length) return `No field metadata returned for "${recordType}".`;
+  // ns_getSuiteQLMetadata returns { success, metadata: { type, properties: { fieldName: { title, type, ... } } } }
+  if (parsed.metadata?.properties) {
+    const props = parsed.metadata.properties;
+    const lines = Object.entries(props).slice(0, 100).map(([name, f]) => {
+      const nullable = f.nullable ? ' [nullable]' : '';
+      const joinable = f['x-n:joinable'] ? ` [joinable→${f['x-n:recordType'] || '?'}]` : '';
+      return `  ${name}: ${f.type || '?'}${nullable}${joinable}${f.title ? ` (${f.title})` : ''}`;
+    });
+    return `Record type "${recordType}" fields:\n${lines.join('\n')}`;
+  }
 
-  // Build a compact text block Groq can read
+  // Fallback: older array shape { fields: [...] }
+  const fields = Array.isArray(parsed) ? parsed : parsed.fields || parsed.body || [];
+  if (!fields.length) return `No field metadata returned for "${recordType}".`;
   const lines = fields.slice(0, 80).map(f => {
     const req = f.isRequired || f.mandatory ? ' [required]' : '';
     return `  ${f.name || f.id}: ${f.type || f.fieldType || '?'}${req}${f.label ? ` (${f.label})` : ''}`;
