@@ -1,6 +1,7 @@
 import express from 'express';
 import { testConnection, runSuiteQL } from '../services/netsuiteClient.js';
 import { validateSuiteQL } from '../middleware/validateQuery.js';
+import { listMcpTools, callMcpTool } from '../services/mcpClient.js';
 
 const router = express.Router();
 
@@ -25,6 +26,28 @@ router.post('/query', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/netsuite/mcp-tools — list MCP tools with full schemas (debug)
+router.get('/mcp-tools', async (req, res) => {
+  try {
+    const tools = await listMcpTools(true, req.userId);
+    res.json(tools);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/netsuite/mcp-call — call an MCP tool directly (debug)
+router.post('/mcp-call', async (req, res) => {
+  const { tool, args } = req.body;
+  if (!tool) return res.status(400).json({ error: 'tool is required' });
+  try {
+    const result = await callMcpTool(tool, args || {}, req.userId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

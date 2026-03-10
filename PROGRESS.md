@@ -493,6 +493,39 @@ Requires NetSuite-side setup before MCP calls succeed:
 
 ---
 
+### Autonomous Agent Write Operations Fixed — 2026-03-10 (complete)
+
+Three bugs fixed that prevented autonomous agent approvals from actually updating NetSuite records.
+
+**Bug 1 — Wrong MCP parameter names for writes**
+`executeTodo` and the auto-execute path in `executeAgent` were calling `ns_updateRecord` with `{ id, values }` but the actual MCP tool schema requires `{ recordId, data }` where `data` is a **stringified JSON string**. Same for `ns_createRecord` — requires `{ data }` not `{ values }`. NetSuite silently ignored all previous update calls because the required params were missing.
+
+Fixed by fetching the live tool schema via `listMcpTools` and correcting both call sites in `autonomousAgentService.js`:
+```js
+// updateRecord
+{ recordType, recordId: String(args.id), data: JSON.stringify(args.values) }
+// createRecord
+{ recordType, data: JSON.stringify(args.values) }
+```
+
+**Bug 2 — `isError` response not checked**
+`executeTodo` called `callMcpTool` but discarded the return value. If MCP returned `isError: true` in the JSON-RPC response (without throwing), the todo was still marked `approved`. Added explicit check: throws `"NetSuite rejected the update: ..."` if `mcpResult.isError`.
+
+**Bug 3 — Groq generating SuiteQL functions as field values**
+Groq kept generating `"SYSDATE"`, `"SYSTIMESTAMP"`, or hardcoded dates instead of the `{{NOW_DATE}}`/`{{NOW_ISO}}` runtime tokens. Fixed by rewriting the RUNTIME TOKENS section in `buildPlannerPrompt` with explicit negative examples:
+- ✗ NEVER write `"SYSDATE"`, `"SYSTIMESTAMP"`, `"NOW()"` — stored as literal strings
+- ✗ NEVER hardcode a date
+- ✓ ALWAYS use `{{NOW_DATE}}` / `{{NOW_ISO}}` for dynamic timestamps
+
+**Bug 4 — MCP write timeout**
+`ns_updateRecord` on NetSuite takes longer than 30s to respond for write operations. Raised `mcpClient.js` axios timeout from 30s → 90s. The update was succeeding server-side but the client received a timeout error.
+
+**Debug endpoint added** (permanent, auth-protected):
+- `GET /api/netsuite/mcp-tools` — returns live MCP tool list with full input schemas
+- `POST /api/netsuite/mcp-call` — calls any MCP tool directly with provided args
+
+---
+
 ### MCP Pipeline Fully Validated — 2026-03-10 (complete)
 
 End-to-end MCP integration confirmed working against a live NetSuite trial account (TSTDRV2309831).

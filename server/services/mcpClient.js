@@ -50,7 +50,7 @@ async function mcpRequest(method, params = undefined, userId = null) {
       'Accept': 'application/json, text/event-stream',
       'MCP-Protocol-Version': '2025-06-18',
     },
-    timeout: 30000,
+    timeout: 90000,
   });
 
   if (response.data?.error) {

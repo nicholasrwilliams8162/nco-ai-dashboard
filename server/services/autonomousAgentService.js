@@ -90,11 +90,17 @@ Rules:
 - CRITICAL: mainline is a column on transactionline, NOT on transaction. Never write t.mainline on the transaction table.
 - Limit results with ROWNUM <= 200 (or less) to avoid overwhelming the system.
 
-RUNTIME TOKENS — use these in actionArguments.values when the instruction calls for a dynamic value at execution time:
-- {{NOW_UNIX}} → current Unix epoch timestamp as a string (e.g. "1772930747") — use when instruction says "current timestamp", "Unix timestamp", or "epoch"
-- {{NOW_ISO}}  → current ISO 8601 datetime string (e.g. "2026-03-07T19:45:00.000Z")
-- {{NOW_DATE}} → current date string (e.g. "2026-03-07")
-These are resolved at execution/approval time, NOT at plan time. NEVER hardcode a date/timestamp.
+RUNTIME TOKENS — MANDATORY for any dynamic date/time value in actionArguments.values:
+- {{NOW_DATE}} → resolves to today's date string at execution time, e.g. "2026-03-10"
+- {{NOW_ISO}}  → resolves to full ISO datetime string at execution time, e.g. "2026-03-10T15:30:00.000Z"
+- {{NOW_UNIX}} → resolves to Unix epoch integer as string at execution time, e.g. "1772930747"
+
+CRITICAL RULES FOR TIMESTAMPS:
+✗ NEVER write "SYSDATE", "SYSTIMESTAMP", "NOW()", or any SQL/SuiteQL function as a value — these are query-only and will be stored as a literal string "SYSDATE" in the record, which is WRONG.
+✗ NEVER hardcode a date like "2026-03-10" — it will be stale on future runs.
+✓ ALWAYS use {{NOW_DATE}} when the instruction says "current date", "today", or "timestamp as a string".
+✓ ALWAYS use {{NOW_ISO}} when the instruction says "ISO timestamp" or "datetime string".
+Example — if told to set field "otherrefnum" to current timestamp: "otherrefnum": "{{NOW_ISO}}"
 
 CRITICAL — REST API recordType names (use EXACTLY, all lowercase, no spaces):
   salesorder, invoice, vendorbill, purchaseorder, estimate, itemreceipt,
@@ -296,9 +302,16 @@ export async function executeAgent(agentId) {
           const filledArgs = resolveRuntimeTokens(fillTemplate(plan.actionArguments, row));
           filledArgs.recordType = normalizeRecordType(filledArgs.recordType);
           if (plan.actionTool === 'updateRecord') {
-            await callMcpTool('ns_updateRecord', { recordType: filledArgs.recordType, id: filledArgs.id, values: filledArgs.values }, agent.user_id);
+            await callMcpTool('ns_updateRecord', {
+              recordType: filledArgs.recordType,
+              recordId: String(filledArgs.id),
+              data: JSON.stringify(filledArgs.values),
+            }, agent.user_id);
           } else if (plan.actionTool === 'createRecord') {
-            await callMcpTool('ns_createRecord', { recordType: filledArgs.recordType, values: filledArgs.values }, agent.user_id);
+            await callMcpTool('ns_createRecord', {
+              recordType: filledArgs.recordType,
+              data: JSON.stringify(filledArgs.values),
+            }, agent.user_id);
           }
           addNotification(agentId, runId, 'action', `Executed: ${message}`);
           actionsCreated++;
@@ -377,12 +390,26 @@ export async function executeTodo(todoId) {
   try {
     const agent = db.prepare('SELECT user_id FROM autonomous_agents WHERE id = ?').get(todo.agent_id);
     args.recordType = normalizeRecordType(args.recordType);
+    let mcpResult;
     if (todo.action_tool === 'updateRecord') {
-      await callMcpTool('ns_updateRecord', { recordType: args.recordType, id: args.id, values: args.values }, agent?.user_id);
+      // ns_updateRecord expects: recordType, recordId (not id), data (stringified JSON, not values object)
+      mcpResult = await callMcpTool('ns_updateRecord', {
+        recordType: args.recordType,
+        recordId: String(args.id),
+        data: JSON.stringify(args.values),
+      }, agent?.user_id);
     } else if (todo.action_tool === 'createRecord') {
-      await callMcpTool('ns_createRecord', { recordType: args.recordType, values: args.values }, agent?.user_id);
+      // ns_createRecord expects: recordType, data (stringified JSON, not values object)
+      mcpResult = await callMcpTool('ns_createRecord', {
+        recordType: args.recordType,
+        data: JSON.stringify(args.values),
+      }, agent?.user_id);
     } else {
       throw new Error(`Unknown action tool: ${todo.action_tool}`);
+    }
+    console.log(`[executeTodo] MCP result isError=${mcpResult.isError} text=${mcpResult.text?.slice(0, 300)}`);
+    if (mcpResult.isError) {
+      throw new Error(`NetSuite rejected the update: ${mcpResult.text}`);
     }
 
     db.prepare(`UPDATE agent_todos SET status = 'approved', updated_at = datetime('now') WHERE id = ?`).run(todoId);
