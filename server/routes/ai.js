@@ -1,5 +1,5 @@
 import express from 'express';
-import { processNaturalLanguageQuery } from '../services/aiService.js';
+import { processNaturalLanguageQuery } from '../services/agenticEngine.js';
 import db from '../db/database.js';
 
 const router = express.Router();

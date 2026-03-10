@@ -123,7 +123,7 @@ function rewriteItemJoin(q) {
   return q;
 }
 
-function sanitizeSuiteQL(query) {
+export function sanitizeSuiteQL(query) {
   return rewriteItemJoin(query);
 }
 

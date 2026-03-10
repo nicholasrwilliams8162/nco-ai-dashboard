@@ -1,5 +1,5 @@
 import express from 'express';
-import { planAgentAction, executeAgentPlan } from '../services/agentService.js';
+import { planAgentAction, executeAgentPlan } from '../services/agenticEngine.js';
 import { updateRecord, inactivateRecord } from '../services/restRecordClient.js';
 import db from '../db/database.js';
 

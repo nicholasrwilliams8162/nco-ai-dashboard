@@ -1,7 +1,6 @@
 import Groq from 'groq-sdk';
 import { buildSchemaContext } from './schemaContext.js';
-import { runSuiteQL } from './netsuiteClient.js';
-import { createRecord, updateRecord } from './restRecordClient.js';
+import { runMcpSuiteQL, callMcpTool } from './mcpClient.js';
 import db from '../db/database.js';
 
 function getGroqClient(userId) {
@@ -211,7 +210,7 @@ export async function executeAgent(agentId) {
     let rows = [];
     console.log(`[AutoAgent] Query:\n${plan.query}`);
     try {
-      const result = await runSuiteQL(plan.query, { userId: agent.user_id });
+      const result = await runMcpSuiteQL(plan.query, agent.user_id);
       rows = result.items || [];
     } catch (firstErr) {
       console.warn(`[AutoAgent] Query failed: ${firstErr.message}\nAttempting self-correction…`);
@@ -240,7 +239,7 @@ export async function executeAgent(agentId) {
         plan = JSON.parse(correctedText);
         if (!plan.query) throw new Error('Corrected plan has no query');
         console.log(`[AutoAgent] Corrected query:\n${plan.query}`);
-        const result = await runSuiteQL(plan.query, { userId: agent.user_id });
+        const result = await runMcpSuiteQL(plan.query, agent.user_id);
         rows = result.items || [];
         console.log(`[AutoAgent] Self-correction succeeded`);
         // Cache the corrected plan and save memory
@@ -297,9 +296,9 @@ export async function executeAgent(agentId) {
           const filledArgs = resolveRuntimeTokens(fillTemplate(plan.actionArguments, row));
           filledArgs.recordType = normalizeRecordType(filledArgs.recordType);
           if (plan.actionTool === 'updateRecord') {
-            await updateRecord(filledArgs.recordType, filledArgs.id, filledArgs.values, agent.user_id);
+            await callMcpTool('ns_updateRecord', { recordType: filledArgs.recordType, id: filledArgs.id, values: filledArgs.values }, agent.user_id);
           } else if (plan.actionTool === 'createRecord') {
-            await createRecord(filledArgs.recordType, filledArgs.values, agent.user_id);
+            await callMcpTool('ns_createRecord', { recordType: filledArgs.recordType, values: filledArgs.values }, agent.user_id);
           }
           addNotification(agentId, runId, 'action', `Executed: ${message}`);
           actionsCreated++;
@@ -379,9 +378,9 @@ export async function executeTodo(todoId) {
     const agent = db.prepare('SELECT user_id FROM autonomous_agents WHERE id = ?').get(todo.agent_id);
     args.recordType = normalizeRecordType(args.recordType);
     if (todo.action_tool === 'updateRecord') {
-      await updateRecord(args.recordType, args.id, args.values, agent?.user_id);
+      await callMcpTool('ns_updateRecord', { recordType: args.recordType, id: args.id, values: args.values }, agent?.user_id);
     } else if (todo.action_tool === 'createRecord') {
-      await createRecord(args.recordType, args.values, agent?.user_id);
+      await callMcpTool('ns_createRecord', { recordType: args.recordType, values: args.values }, agent?.user_id);
     } else {
       throw new Error(`Unknown action tool: ${todo.action_tool}`);
     }

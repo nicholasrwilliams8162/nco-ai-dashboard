@@ -276,7 +276,7 @@ Full UI redesign — sidebar navigation, dual light/dark theme, Manrope font.
 
 ## Current status
 
-**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, multi-tenant Clerk auth, and v3 design system all functional.
+**Mostly working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, multi-tenant Clerk auth, and v4 design system all functional. Agentic engine refactor complete — MCP calls blocked on 401 until NetSuite-side setup (Bundle 522506 + permission) is done. Old `aiService.js` / `agentService.js` retained as fallback until MCP is validated.
 
 ## Key files
 
@@ -288,9 +288,11 @@ server/
   routes/auth.js                    # OAuth PKCE flow + Groq key + settings
   routes/dashboard.js               # Widget CRUD, layout, refresh
   routes/autonomousAgents.js        # Agents, todos, notifications, runs CRUD
-  services/aiService.js             # Groq query pipeline + self-correction
-  services/agentService.js          # Agent planning + plan execution
-  services/autonomousAgentService.js # Autonomous agent execution engine (runtime token fix)
+  services/agenticEngine.js         # NEW — unified agentic loop (replaces aiService + agentService)
+  services/docSearchService.js      # NEW — timdietrich.me doc fetcher (5s timeout, 10min cache)
+  services/aiService.js             # Groq query pipeline + self-correction (superseded, kept for fallback)
+  services/agentService.js          # Agent planning + plan execution (superseded, kept for fallback)
+  services/autonomousAgentService.js # Autonomous agent execution engine (now uses MCP calls)
   services/schedulerService.js      # node-cron scheduler + catchUpMissedRuns()
   services/restRecordClient.js      # NetSuite REST Record API
   services/netsuiteClient.js        # SuiteQL + token refresh
@@ -317,6 +319,7 @@ electron/
   main.cjs                          # Electron: tray, server spawn, dock badge, wake catch-up
 
 design-system.html                  # Standalone design system reference (tokens, components)
+CLAUDE.md                           # NEW — commands, architecture, SuiteQL conventions for Claude Code
 ```
 
 ## To resume
@@ -460,3 +463,30 @@ Full visual overhaul targeting a modern enterprise SaaS aesthetic (Linear / Verc
 - `client/src/store/dashboardStore.js` — `updateWidgetConfig` action
 - `server/routes/dashboard.js` — extended PATCH endpoint
 - `server/services/schemaContext.js` — revenue examples + YEAR()/MONTH() ban
+
+---
+
+### OpenSuiteMCP-Style Agentic Engine — 2026-03-09 (complete)
+
+Major architectural overhaul replacing the NetSuite integration engine with a unified agentic loop modelled on OpenSuiteMCP. All NetSuite calls now route through MCP rather than directly through the REST Record API or a raw SuiteQL client.
+
+**New files:**
+- `server/services/agenticEngine.js` — Unified agentic loop that replaces both `aiService.js` and `agentService.js`. Widget queries use a 3-step loop (generate → execute → metadata introspect on failure). Agent writes use a 5-step loop with dynamic MCP tool discovery. All NetSuite calls route through MCP.
+- `server/services/docSearchService.js` — Lightweight timdietrich.me documentation fetcher. 5-second timeout, 10-minute in-memory cache. Non-fatal — returns empty string on failure so the agentic loop is never blocked.
+- `CLAUDE.md` — New project-level file documenting commands, architecture, NetSuite/SuiteQL conventions, and key gotchas for future Claude Code sessions.
+
+**Files modified:**
+- `server/services/mcpClient.js` — Added `runMcpSuiteQL()` and `getMcpRecordTypeMetadata()` typed wrappers. Threaded `userId` through all functions. Changed tools cache from a module-level variable to a per-user `Map` to avoid cross-user cache collisions.
+- `server/services/netsuiteClient.js` — Exported `sanitizeSuiteQL` so `mcpClient.js` can import and reuse the existing sanitizer logic.
+- `server/services/autonomousAgentService.js` — Swapped all call sites in both `executeAgent()` and `executeTodo()`: `runSuiteQL` → `runMcpSuiteQL`, `createRecord`/`updateRecord` → `callMcpTool('ns_createRecord')`/`callMcpTool('ns_updateRecord')`.
+- `server/routes/ai.js` — Import changed from `aiService` to `agenticEngine`.
+- `server/routes/agent.js` — Import changed from `agentService` to `agenticEngine`.
+
+**Blocked — MCP endpoint returning 401:**
+Requires NetSuite-side setup before MCP calls succeed:
+1. Install MCP Standard Tools SuiteApp (Bundle 522506)
+2. Add "MCP Server Connection" permission to the integration role
+
+**Old files kept but no longer imported** (safe to delete after MCP validation):
+- `server/services/aiService.js`
+- `server/services/agentService.js`

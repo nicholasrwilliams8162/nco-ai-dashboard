@@ -1,10 +1,9 @@
 import axios from 'axios';
-import { getValidToken } from './netsuiteClient.js';
+import { getValidToken, sanitizeSuiteQL } from './netsuiteClient.js';
 
 function translateMcpError(err) {
   const status = err.response?.status;
   const body = err.response?.data;
-  // Log the raw body so we can see exactly what NetSuite says
   console.error('[MCP] HTTP', status, 'response body:', JSON.stringify(body));
 
   const nsDetail =
@@ -31,13 +30,12 @@ function getMcpUrl(accountId) {
   return `https://${host}.suitetalk.api.netsuite.com/services/mcp/v1/all`;
 }
 
-// Cache the tool list — it rarely changes
-let cachedTools = null;
-let toolsCachedAt = 0;
+// Per-user tools cache — key: userId || 'default'
+const toolsCache = new Map();
 const TOOLS_CACHE_TTL = 5 * 60 * 1000;
 
-async function mcpRequest(method, params = undefined) {
-  const token = await getValidToken();
+async function mcpRequest(method, params = undefined, userId = null) {
+  const token = await getValidToken(userId);
   const url = getMcpUrl(token.account_id);
 
   console.log(`[MCP] ${method} → ${url}`);
@@ -65,35 +63,37 @@ async function mcpRequest(method, params = undefined) {
 
 // MCP requires an initialize handshake before other methods.
 // We send it before every real request since the endpoint is stateless.
-async function mcpInitialize() {
+async function mcpInitialize(userId = null) {
   await mcpRequest('initialize', {
     protocolVersion: '2025-03-26',
     capabilities: { roots: { listChanged: false }, sampling: {} },
     clientInfo: { name: 'netsuite-ai-dashboard', version: '1.0.0' },
-  });
+  }, userId);
 }
 
-export async function listMcpTools(forceRefresh = false) {
-  if (!forceRefresh && cachedTools && Date.now() - toolsCachedAt < TOOLS_CACHE_TTL) {
-    return cachedTools;
+export async function listMcpTools(forceRefresh = false, userId = null) {
+  const cacheKey = userId || 'default';
+  const cached = toolsCache.get(cacheKey);
+  if (!forceRefresh && cached && Date.now() - cached.at < TOOLS_CACHE_TTL) {
+    return cached.tools;
   }
 
   try {
-    await mcpInitialize();
-    const result = await mcpRequest('tools/list');
-    cachedTools = result?.tools || [];
-    toolsCachedAt = Date.now();
-    return cachedTools;
+    await mcpInitialize(userId);
+    const result = await mcpRequest('tools/list', undefined, userId);
+    const tools = result?.tools || [];
+    toolsCache.set(cacheKey, { tools, at: Date.now() });
+    return tools;
   } catch (err) {
     throw translateMcpError(err);
   }
 }
 
-export async function callMcpTool(toolName, args) {
+export async function callMcpTool(toolName, args, userId = null) {
   let result;
   try {
-    await mcpInitialize();
-    result = await mcpRequest('tools/call', { name: toolName, arguments: args });
+    await mcpInitialize(userId);
+    result = await mcpRequest('tools/call', { name: toolName, arguments: args }, userId);
   } catch (err) {
     throw translateMcpError(err);
   }
@@ -109,4 +109,78 @@ export async function callMcpTool(toolName, args) {
   }
 
   return { raw: result, text: JSON.stringify(result), isError: false };
+}
+
+/**
+ * Run a SuiteQL query through MCP and return { items, totalResults, hasMore }
+ * — same shape as netsuiteClient.runSuiteQL() so callers can migrate transparently.
+ */
+export async function runMcpSuiteQL(query, userId = null) {
+  console.log('[MCP SuiteQL] Raw query:\n', query);
+  const sanitized = sanitizeSuiteQL(query);
+  if (sanitized !== query) {
+    console.log('[MCP SuiteQL] Auto-corrected to:\n', sanitized);
+  }
+
+  const mcpResult = await callMcpTool('runSuiteQL', { query: sanitized }, userId);
+
+  if (mcpResult.isError) {
+    throw new Error(`NetSuite MCP SuiteQL error: ${mcpResult.text}`);
+  }
+
+  // Parse the text result — NetSuite may return several shapes
+  let parsed;
+  try {
+    parsed = JSON.parse(mcpResult.text);
+  } catch {
+    // If unparseable, treat as fatal
+    throw new Error(`MCP runSuiteQL returned unexpected response: ${mcpResult.text?.slice(0, 200)}`);
+  }
+
+  // Handle known response shapes
+  if (Array.isArray(parsed)) {
+    return { items: parsed, totalResults: parsed.length, hasMore: false };
+  }
+  if (parsed.items !== undefined) {
+    return {
+      items: parsed.items || [],
+      totalResults: parsed.totalResults ?? parsed.items?.length ?? 0,
+      hasMore: parsed.hasMore || false,
+    };
+  }
+  if (parsed.rows !== undefined) {
+    return { items: parsed.rows, totalResults: parsed.count ?? parsed.rows.length, hasMore: false };
+  }
+  // Fallback: wrap whatever we got
+  return { items: [parsed], totalResults: 1, hasMore: false };
+}
+
+/**
+ * Fetch record type metadata from NetSuite via MCP and return a compact
+ * human-readable text block suitable for injection into a Groq system prompt.
+ */
+export async function getMcpRecordTypeMetadata(recordType, userId = null) {
+  const mcpResult = await callMcpTool('ns_getRecordTypeMetadata', { recordType }, userId);
+
+  if (mcpResult.isError) {
+    throw new Error(`NetSuite MCP metadata error: ${mcpResult.text}`);
+  }
+
+  let fields;
+  try {
+    const parsed = JSON.parse(mcpResult.text);
+    // The SuiteApp may return { fields: [...] } or an array directly
+    fields = Array.isArray(parsed) ? parsed : parsed.fields || parsed.body || [];
+  } catch {
+    return mcpResult.text?.slice(0, 1500) || '';
+  }
+
+  if (!fields.length) return `No field metadata returned for "${recordType}".`;
+
+  // Build a compact text block Groq can read
+  const lines = fields.slice(0, 80).map(f => {
+    const req = f.isRequired || f.mandatory ? ' [required]' : '';
+    return `  ${f.name || f.id}: ${f.type || f.fieldType || '?'}${req}${f.label ? ` (${f.label})` : ''}`;
+  });
+  return `Record type "${recordType}" fields:\n${lines.join('\n')}`;
 }
