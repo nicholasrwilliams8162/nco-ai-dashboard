@@ -24,14 +24,15 @@ router.get('/agents', (req, res) => {
 
 // POST /api/automation/test-query — generate + run query without any side effects
 router.post('/test-query', async (req, res) => {
-  const { instructions, feedback, previousPlan, agentId } = req.body;
+  const { instructions, feedback, previousPlan, agentId, customQuery } = req.body;
   if (!instructions?.trim()) return res.status(400).json({ error: 'instructions is required' });
   try {
-    const result = await testAgentQuery(
-      instructions.trim(), req.userId,
-      feedback || null, previousPlan || null,
-      agentId || null,
-    );
+    const result = await testAgentQuery(instructions.trim(), req.userId, {
+      feedback: feedback || null,
+      previousPlan: previousPlan || null,
+      agentId: agentId || null,
+      customQuery: customQuery || null,
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

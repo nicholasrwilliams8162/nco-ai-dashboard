@@ -195,14 +195,20 @@ async function planExecution(agent) {
  * Supports iterative refinement via feedback + previousPlan.
  * Returns { plan, rows, totalResults } — no side effects.
  */
-export async function testAgentQuery(instructions, userId, feedback = null, previousPlan = null, agentId = null) {
-  const client = getGroqClient(userId);
-  const systemPrompt = buildPlannerPrompt(instructions);
+export async function testAgentQuery(instructions, userId, { feedback, previousPlan, agentId, customQuery } = {}) {
+  let plan, query;
 
-  let plan, rawText;
-
-  if (feedback && previousPlan) {
+  if (customQuery) {
+    // User provided SQL directly — skip Groq, just run the query
+    query = customQuery.trim();
+    plan = { ...(previousPlan || {}), query };
+    if (agentId) {
+      saveMemory(agentId, 'correction', `User manually edited the query to: "${query.slice(0, 120)}"`);
+    }
+  } else if (feedback && previousPlan) {
     // Refinement — send Groq the previous plan + user feedback
+    const client = getGroqClient(userId);
+    const systemPrompt = buildPlannerPrompt(instructions);
     const messages = [
       { role: 'user', content: instructions },
       { role: 'assistant', content: JSON.stringify(previousPlan) },
@@ -211,31 +217,29 @@ export async function testAgentQuery(instructions, userId, feedback = null, prev
         content: `The query ran but the results don't look right.\nUser feedback: "${feedback}"\nPlease fix the query and return a corrected JSON plan.`,
       },
     ];
-    rawText = await callGroq(client, systemPrompt, messages);
+    const rawText = await callGroq(client, systemPrompt, messages);
     plan = JSON.parse(rawText);
-
-    // Save correction memory so future runs learn from this
+    query = plan.query;
     if (agentId) {
-      saveMemory(agentId, 'correction',
-        `User said results were wrong: "${feedback}". Query was corrected.`);
+      saveMemory(agentId, 'correction', `User said results were wrong: "${feedback}". Query was corrected.`);
     }
   } else {
     // Fresh plan — always bypass cache during testing
     const tempAgent = { instructions, user_id: userId, cached_plan: null, plan_cached_at: null };
     const result = await planExecution(tempAgent);
     plan = result.plan;
-    rawText = result.rawText;
+    query = plan.query;
   }
 
-  if (!plan.query) throw new Error('AI did not produce a SuiteQL query for these instructions.');
+  if (!query) throw new Error('AI did not produce a SuiteQL query for these instructions.');
 
-  const result = await runMcpSuiteQL(plan.query, userId);
+  const result = await runMcpSuiteQL(query, userId);
 
   return {
-    plan,
-    query: plan.query,
-    planSummary: plan.planSummary,
-    rows: result.items.slice(0, 20), // preview only
+    plan: { ...plan, query },
+    query,
+    planSummary: plan.planSummary || null,
+    rows: result.items.slice(0, 20),
     totalResults: result.totalResults,
   };
 }

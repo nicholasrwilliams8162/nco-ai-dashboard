@@ -77,6 +77,8 @@ function AgentForm({ initial, onSave, onCancel }) {
   const [feedback, setFeedback]         = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [acceptedPlan, setAcceptedPlan] = useState(null);
+  const [editingQuery, setEditingQuery] = useState(false);
+  const [editedQuery, setEditedQuery]   = useState('');
 
   const isCustom = form.schedule === 'custom';
   const effectiveCron = isCustom ? form.customCron : form.schedule;
@@ -87,19 +89,22 @@ function AgentForm({ initial, onSave, onCancel }) {
     if (key === 'instructions') { setAcceptedPlan(null); setTestResult(null); }
   };
 
-  const handleTest = async (refineFeedback = null) => {
+  const handleTest = async (refineFeedback = null, customQuery = null) => {
     if (!form.instructions.trim()) return;
     setTesting(true);
     setTestError(null);
     setShowFeedback(false);
+    setEditingQuery(false);
     try {
       const { data } = await api.post('/automation/test-query', {
         instructions: form.instructions.trim(),
         feedback: refineFeedback || null,
-        previousPlan: refineFeedback ? testResult?.plan : null,
+        previousPlan: (refineFeedback || customQuery) ? testResult?.plan : null,
         agentId: initial?.id || null,
+        customQuery: customQuery || null,
       });
       setTestResult(data);
+      setEditedQuery(data.query);
       setFeedback('');
     } catch (err) {
       setTestError(err.response?.data?.error || err.message);
@@ -217,8 +222,37 @@ function AgentForm({ initial, onSave, onCancel }) {
           <div className="px-3 py-3 space-y-3 border-t border-border">
             {/* Query */}
             <div>
-              <p className="text-xs font-medium text-t3 mb-1">Generated query</p>
-              <pre className="text-xs font-mono text-t2 bg-card2 border border-border rounded-md px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">{testResult.query}</pre>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-medium text-t3">Generated query</p>
+                {!editingQuery ? (
+                  <button type="button" onClick={() => { setEditingQuery(true); setEditedQuery(testResult.query); }}
+                    className="text-xs text-accent hover:underline">
+                    Edit SQL
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setEditingQuery(false)}
+                      className="text-xs text-t3 hover:text-t1">Cancel</button>
+                    <button type="button"
+                      disabled={testing || !editedQuery.trim()}
+                      onClick={() => handleTest(null, editedQuery)}
+                      className="text-xs text-accent hover:underline disabled:opacity-40">
+                      {testing ? 'Running…' : 'Run edited query'}
+                    </button>
+                  </div>
+                )}
+              </div>
+              {editingQuery ? (
+                <textarea
+                  value={editedQuery}
+                  onChange={e => setEditedQuery(e.target.value)}
+                  rows={6}
+                  className="w-full text-xs font-mono text-t2 bg-card2 border border-accent rounded-md px-3 py-2 focus:outline-none resize-y"
+                  spellCheck={false}
+                />
+              ) : (
+                <pre className="text-xs font-mono text-t2 bg-card2 border border-border rounded-md px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">{testResult.query}</pre>
+              )}
             </div>
 
             {/* Summary */}
