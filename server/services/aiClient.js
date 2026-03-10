@@ -1,62 +1,43 @@
 /**
- * aiClient.js — Thin wrapper around Google Gemini 2.0 Flash.
+ * aiClient.js — OpenRouter wrapper.
  *
- * Provides a single callAI(systemPrompt, messages, userId) function that
- * returns the model's text reply. All callers (agenticEngine, autonomousAgentService)
- * use this instead of importing Groq directly.
+ * OpenRouter is OpenAI-API-compatible and routes to many models.
+ * Using meta-llama/llama-3.3-70b-instruct:free as default free model —
+ * better instruction-following than raw Groq.
  *
- * Model: gemini-2.0-flash  (free tier via Google AI Studio)
- * JSON mode: responseMimeType = 'application/json' (equivalent to Groq's json_object)
+ * Get a free key at openrouter.ai → Keys.
+ * Keys start with sk-or-...
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import db from '../db/database.js';
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const BASE_URL = 'https://openrouter.ai/api/v1';
 
-export function getAIClient(userId) {
-  const row = userId
-    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'gemini_api_key'").get(userId)
-    : null;
-  const apiKey = row?.value || process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Gemini API key is not configured. Add it in Settings.');
-  return new GoogleGenerativeAI(apiKey);
-}
-
-/**
- * Call Gemini with a system prompt + OpenAI-style message array.
- * Always requests JSON output.
- *
- * @param {string} systemPrompt
- * @param {Array<{role:'user'|'assistant', content:string}>} messages
- * @param {string} userId
- * @returns {Promise<string>} — raw JSON string from the model
- */
 export async function callAI(systemPrompt, messages, userId) {
-  const genAI = getAIClient(userId);
-  const model = genAI.getGenerativeModel({
-    model: MODEL,
-    systemInstruction: systemPrompt,
-    generationConfig: {
-      responseMimeType: 'application/json',
-      maxOutputTokens: 4000,
-      temperature: 0.1, // low temp for deterministic SQL/JSON generation
+  const row = userId
+    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").get(userId)
+    : null;
+  const apiKey = row?.value || process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OpenRouter API key is not configured. Add it in Settings.');
+
+  const client = new OpenAI({
+    apiKey,
+    baseURL: BASE_URL,
+    defaultHeaders: {
+      'HTTP-Referer': 'https://nco-ai-dashboard.app',
+      'X-Title': 'NCO AI Dashboard',
     },
   });
 
-  // Convert OpenAI-style messages to Gemini history format.
-  // Gemini uses 'model' instead of 'assistant', and the last message must be 'user'.
-  const history = [];
-  for (let i = 0; i < messages.length - 1; i++) {
-    const m = messages[i];
-    history.push({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    });
-  }
+  const response = await client.chat.completions.create({
+    model: MODEL,
+    messages: [{ role: 'system', content: systemPrompt }, ...messages],
+    max_tokens: 4000,
+    response_format: { type: 'json_object' },
+    temperature: 0.1,
+  });
 
-  const lastMessage = messages[messages.length - 1];
-  const chat = model.startChat({ history });
-  const result = await chat.sendMessage(lastMessage.content);
-  return result.response.text();
+  return response.choices[0].message.content;
 }

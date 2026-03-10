@@ -65,7 +65,7 @@ function StyledInput({ type = 'text', value, onChange, onKeyDown, placeholder, m
 }
 
 export function SettingsPanel({ onClose, initialError }) {
-  const { authStatus, geminiKeySet, checkAuth } = useDashboardStore();
+  const { authStatus, openrouterKeySet, checkAuth } = useDashboardStore();
   const [accountId, setAccountId] = useState(authStatus.accountId || '');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
@@ -74,20 +74,20 @@ export function SettingsPanel({ onClose, initialError }) {
   const [error, setError] = useState(initialError || null);
   const [showSetup, setShowSetup] = useState(false);
 
-  const [geminiKey, setGeminiKey] = useState('');
+  const [openrouterKey, setOpenrouterKey] = useState('');
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [keyError, setKeyError] = useState(null);
   const [keySaved, setKeySaved] = useState(false);
 
-  const handleSaveGeminiKey = async () => {
-    if (!geminiKey.trim()) { setKeyError('API key is required.'); return; }
+  const handleSaveOpenrouterKey = async () => {
+    if (!openrouterKey.trim()) { setKeyError('API key is required.'); return; }
     setIsSavingKey(true);
     setKeyError(null);
     setKeySaved(false);
     try {
-      await api.post('/auth/settings', { geminiApiKey: geminiKey.trim() });
+      await api.post('/auth/settings', { openrouterApiKey: openrouterKey.trim() });
       await checkAuth();
-      setGeminiKey('');
+      setOpenrouterKey('');
       setKeySaved(true);
       setTimeout(() => setKeySaved(false), 3000);
     } catch {
@@ -288,13 +288,13 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
           )}
 
-          {/* Gemini API Key */}
+          {/* OpenRouter API Key */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', margin: 0 }}>
-                Gemini API Key
+                OpenRouter API Key
               </p>
-              {geminiKeySet ? (
+              {openrouterKeySet ? (
                 <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--green-light)', color: 'var(--green)', borderRadius: 6, fontWeight: 700 }}>
                   Saved
                 </span>
@@ -308,15 +308,15 @@ export function SettingsPanel({ onClose, initialError }) {
               <div style={{ flex: 1 }}>
                 <StyledInput
                   type="password"
-                  value={geminiKey}
-                  onChange={e => setGeminiKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveGeminiKey()}
-                  placeholder={geminiKeySet ? 'Enter new key to replace…' : 'AIza…'}
+                  value={openrouterKey}
+                  onChange={e => setOpenrouterKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveOpenrouterKey()}
+                  placeholder={openrouterKeySet ? 'Enter new key to replace…' : 'sk-or-…'}
                   mono
                 />
               </div>
               <button
-                onClick={handleSaveGeminiKey}
+                onClick={handleSaveOpenrouterKey}
                 disabled={isSavingKey}
                 style={{
                   flexShrink: 0, padding: '10px 16px',
@@ -330,7 +330,7 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
             {keyError && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{keyError}</p>}
             <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }}>
-              Get a free key at <span style={{ color: 'var(--text-2)' }}>aistudio.google.com</span>. Model: Gemini 2.0 Flash. Never sent to the browser after saving.
+              Get a free key at <span style={{ color: 'var(--text-2)' }}>openrouter.ai</span> → Keys. Model: Llama 3.3 70B. Never sent to the browser after saving.
             </p>
           </div>
         </div>

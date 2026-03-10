@@ -134,21 +134,21 @@ router.get('/netsuite/callback', async (req, res) => {
 
 // GET /api/auth/settings — returns which keys are set (never the values)
 router.get('/settings', requireClerkAuth, (req, res) => {
-  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'gemini_api_key'").get(req.userId);
-  const envKey = process.env.GEMINI_API_KEY;
+  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").get(req.userId);
+  const envKey = process.env.OPENROUTER_API_KEY;
   const isSet = !!(row?.value || envKey);
-  res.json({ geminiKeySet: isSet });
+  res.json({ openrouterKeySet: isSet });
 });
 
 // POST /api/auth/settings — save API keys
 router.post('/settings', requireClerkAuth, (req, res) => {
-  const { geminiApiKey } = req.body;
-  if (geminiApiKey !== undefined) {
-    if (!geminiApiKey.trim()) {
-      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'gemini_api_key'").run(req.userId);
+  const { openrouterApiKey } = req.body;
+  if (openrouterApiKey !== undefined) {
+    if (!openrouterApiKey.trim()) {
+      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").run(req.userId);
     } else {
-      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'gemini_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
-        .run(req.userId, geminiApiKey.trim());
+      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'openrouter_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
+        .run(req.userId, openrouterApiKey.trim());
     }
   }
   res.json({ ok: true });
