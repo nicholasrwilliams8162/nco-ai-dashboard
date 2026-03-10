@@ -13,11 +13,11 @@ TYPE CODES: CustInvc=Invoice, SalesOrd=Sales Order, CustPymt=Customer Payment, C
   Check=Check, Deposit=Deposit, ExpRept=Expense Report, InvAdjst=Inventory Adjustment,
   InvTrnfr=Inventory Transfer, RtnAuth=Return Authorization, CashSale=Cash Sale, CashRfnd=Cash Refund
 STATUS: internal single-char code — always use BUILTIN.DF(t.status) to display or filter.
-  Status labels by type:
-  SalesOrd: "open" = NOT billed/closed. Use: BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND NOT LIKE '%Closed%' AND NOT LIKE '%Cancelled%'  OR LIKE '%Pending%'. NEVER LIKE '%Open%' for SalesOrd.
-  CustInvc/VendBill: open=LIKE '%Open%', paid=LIKE '%Paid%'
-  PurchOrd: active=LIKE '%Pending%', done=LIKE '%Closed%'
-  Unknown/mixed: NOT LIKE '%Closed%' AND NOT LIKE '%Cancelled%'`;
+  CRITICAL: Only add status filters if the user's instructions explicitly mention "open", "unbilled", "not billed", "pending", or similar. If the user just says "sales orders over $X" with no status qualifier, do NOT add any status filter — return all matching records regardless of status.
+  Status labels by type (only apply when instruction explicitly requests filtering):
+  SalesOrd open/unbilled: BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'. NEVER use LIKE '%Open%' for SalesOrd — it matches nothing.
+  CustInvc/VendBill: open=BUILTIN.DF(t.status) LIKE '%Open%', paid=LIKE '%Paid%'
+  PurchOrd: active=LIKE '%Pending%', done=LIKE '%Closed%'`;
 
 const S_TRANSACTIONLINE = `
 TRANSACTIONLINE TABLE:
@@ -97,11 +97,19 @@ FROM transaction t JOIN customer c ON t.entity = c.id
 WHERE t.type = 'CustInvc' AND BUILTIN.DF(t.status) LIKE '%Open%' ORDER BY t.trandate DESC`,
   },
   {
-    tags: ['sales order', 'salesord', 'open order', 'unbilled', 'pending'],
-    sql: `-- Open sales orders (not billed/closed):
+    tags: ['open order', 'unbilled', 'open sales order', 'not billed', 'pending fulfillment'],
+    sql: `-- Open/unbilled sales orders only (use status filter ONLY when instructions say "open" or "not billed"):
 SELECT t.id AS txn_id, t.tranid, t.trandate, t.entity AS entity_id, BUILTIN.DF(t.entity) AS customer, t.foreigntotal AS amount, BUILTIN.DF(t.status) AS status
 FROM transaction t
 WHERE t.type = 'SalesOrd' AND BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'
+ORDER BY t.trandate DESC`,
+  },
+  {
+    tags: ['sales order', 'salesord', 'all sales orders', 'sales orders over'],
+    sql: `-- All sales orders (no status filter — use when instruction does not say "open" or "unbilled"):
+SELECT t.id AS txn_id, t.tranid, t.trandate, t.entity AS entity_id, BUILTIN.DF(t.entity) AS customer, t.foreigntotal AS amount, BUILTIN.DF(t.status) AS status
+FROM transaction t
+WHERE t.type = 'SalesOrd'
 ORDER BY t.trandate DESC`,
   },
   {
