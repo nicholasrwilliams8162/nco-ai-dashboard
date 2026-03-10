@@ -88,6 +88,7 @@ Rules:
 - Always include t.id AS txn_id (or equivalent) in every SELECT so records can be identified.
 - For notifyMessage and actionArguments: use {{exact_column_alias}} from your SELECT.
 - CRITICAL: mainline is a column on transactionline, NOT on transaction. Never write t.mainline on the transaction table.
+- STATUS FILTER RULE: Do NOT add any status filter (BUILTIN.DF(t.status) LIKE/NOT LIKE) unless the instruction explicitly contains the word "open", "unbilled", "not billed", or "pending". The word "sales orders", "invoices", "orders over $X", or similar alone does NOT justify a status filter — omit it entirely.
 - Limit results with ROWNUM <= 200 (or less) to avoid overwhelming the system.
 
 RUNTIME TOKENS — MANDATORY for any dynamic date/time value in actionArguments.values:

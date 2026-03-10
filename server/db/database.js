@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // DATA_DIR can be set to a Railway persistent volume mount path (e.g. /data)
@@ -235,5 +235,35 @@ db.exec(`
 db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_cols_table ON ns_schema_columns(table_id)`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_rels_from  ON ns_schema_relationships(from_table)`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_rels_to    ON ns_schema_relationships(to_table)`);
+
+// Auto-import NetSuite schema on first start if schema file exists and tables are empty
+const schemaCount = db.prepare('SELECT COUNT(*) AS n FROM ns_schema_tables').get().n;
+if (schemaCount === 0) {
+  const SCHEMA_JSON = resolve(__dirname, '../../netsuite-schema.json');
+  if (existsSync(SCHEMA_JSON)) {
+    console.log('[DB] Auto-importing NetSuite schema...');
+    try {
+      const raw = JSON.parse(readFileSync(SCHEMA_JSON, 'utf8'));
+      function cleanLabel(label, fallback) {
+        if (!label || label.startsWith('[Missing')) return fallback;
+        return label;
+      }
+      const insTable = db.prepare('INSERT OR REPLACE INTO ns_schema_tables (id, label, column_count) VALUES (?, ?, ?)');
+      const insCol   = db.prepare('INSERT OR REPLACE INTO ns_schema_columns (table_id, column_id, label, data_type) VALUES (?, ?, ?, ?)');
+      const insRel   = db.prepare('INSERT INTO ns_schema_relationships (from_table, from_column, to_table, to_column, cardinality, join_type, label) VALUES (?, ?, ?, ?, ?, ?, ?)');
+      db.transaction(() => {
+        for (const t of raw.tables) {
+          insTable.run(t.id, cleanLabel(t.label, t.id), t.columns.length);
+          for (const c of t.columns) insCol.run(t.id, c.id, cleanLabel(c.label, c.id), c.dataType || 'STRING');
+        }
+        for (const r of raw.relationships) insRel.run(r.fromTable, r.fromColumn, r.toTable, r.toColumn, r.cardinality || null, r.joinType || null, r.label || null);
+      })();
+      const stats = db.prepare('SELECT COUNT(*) AS n FROM ns_schema_tables').get().n;
+      console.log(`[DB] Schema imported: ${stats} tables`);
+    } catch (err) {
+      console.warn('[DB] Schema auto-import failed:', err.message);
+    }
+  }
+}
 
 export default db;

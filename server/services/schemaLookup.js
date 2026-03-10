@@ -28,6 +28,13 @@ const EXCLUDE_TABLES = new Set([
   'statuschangelog',
 ]);
 
+// Columns to suppress per table — their raw data type from the schema is misleading
+// because they require special SuiteQL handling covered by hand-curated guidance above.
+const SUPPRESS_COLUMNS = {
+  transaction:     new Set(['status', 'mainline', 'amount', 'taxline']),
+  transactionline: new Set(['mainline', 'taxline']),
+};
+
 // Max columns to include per table in lookup results
 const MAX_COLS_PER_TABLE = 20;
 // Max tables to include from keyword search (beyond ALWAYS_INCLUDE)
@@ -113,10 +120,14 @@ function getColumnsForTable(tableId) {
     `SELECT column_id, label, data_type FROM ns_schema_columns WHERE table_id = ? ORDER BY column_id`
   ).all(tableId);
 
-  return rows.slice(0, MAX_COLS_PER_TABLE).map(c => {
-    const label = c.label !== c.column_id ? ` [${c.label}]` : '';
-    return `${c.column_id}${label} (${c.data_type})`;
-  });
+  const suppress = SUPPRESS_COLUMNS[tableId] || new Set();
+  return rows
+    .filter(c => !suppress.has(c.column_id))
+    .slice(0, MAX_COLS_PER_TABLE)
+    .map(c => {
+      const label = c.label !== c.column_id ? ` [${c.label}]` : '';
+      return `${c.column_id}${label} (${c.data_type})`;
+    });
 }
 
 /**

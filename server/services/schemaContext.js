@@ -14,10 +14,19 @@ TYPE CODES: CustInvc=Invoice, SalesOrd=Sales Order, CustPymt=Customer Payment, C
   Estimate=Quote, ItemRcpt=Item Receipt, ItemShip=Item Fulfillment, Journal=Journal Entry,
   Check=Check, Deposit=Deposit, ExpRept=Expense Report, InvAdjst=Inventory Adjustment,
   InvTrnfr=Inventory Transfer, RtnAuth=Return Authorization, CashSale=Cash Sale, CashRfnd=Cash Refund
-STATUS: internal single-char code — always use BUILTIN.DF(t.status) to display or filter.
-  CRITICAL: Only add status filters if the user's instructions explicitly mention "open", "unbilled", "not billed", "pending", or similar. If the user just says "sales orders over $X" with no status qualifier, do NOT add any status filter — return all matching records regardless of status.
-  Status labels by type (only apply when instruction explicitly requests filtering):
-  SalesOrd open/unbilled: BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'. NEVER use LIKE '%Open%' for SalesOrd — it matches nothing.
+STATUS: internal code — always use BUILTIN.DF(t.status) to display or filter.
+  ══════════════════════════════════════════════════════════════════════
+  STATUS FILTER RULE — READ THIS BEFORE WRITING ANY WHERE CLAUSE:
+  DEFAULT = NO STATUS FILTER. Do NOT add any status filter unless the
+  instruction contains one of these exact words: "open", "unbilled",
+  "not billed", "not closed", "pending approval", "overdue".
+  Saying "sales orders", "invoices", "vendor bills" alone → NO filter.
+  Saying "large orders", "orders over $X", "recent orders" → NO filter.
+  ONLY add a filter when the word "open" / "unbilled" / "pending" is
+  literally present in the instruction.
+  ══════════════════════════════════════════════════════════════════════
+  When a filter IS required:
+  SalesOrd open: BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'. NEVER use LIKE '%Open%' for SalesOrd — it matches nothing.
   CustInvc/VendBill: open=BUILTIN.DF(t.status) LIKE '%Open%', paid=LIKE '%Paid%'
   PurchOrd: active=LIKE '%Pending%', done=LIKE '%Closed%'`;
 
