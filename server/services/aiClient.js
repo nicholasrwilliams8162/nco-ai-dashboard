@@ -16,7 +16,7 @@ import db from '../db/database.js';
 const MODELS = [
   'stepfun/step-3.5-flash:free',
   'qwen/qwen3-next-80b-a3b-instruct:free',
-  'nvidia/llama-nemotron-embed-vl-1b-v2:free',
+  'deepseek/deepseek-chat:free',
 ];
 const BASE_URL = 'https://openrouter.ai/api/v1';
 
