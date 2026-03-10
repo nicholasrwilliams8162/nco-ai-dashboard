@@ -14,9 +14,9 @@ import db from '../db/database.js';
 
 // Free models tried in order — falls back to next on 429/overload
 const MODELS = [
-  'deepseek/deepseek-chat:free',
-  'qwen/qwen2.5-72b-instruct:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
+  'stepfun/step-3.5-flash:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'nvidia/llama-nemotron-embed-vl-1b-v2:free',
 ];
 const BASE_URL = 'https://openrouter.ai/api/v1';
 
