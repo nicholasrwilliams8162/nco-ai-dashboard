@@ -577,3 +577,69 @@ Numeric values that represent money are now automatically formatted as USD curre
 - `client/src/components/Charts/WidgetRenderer.jsx` — chart formatting
 - `client/src/components/Charts/KPIWidget.jsx` — KPI formatting
 - `client/src/components/Charts/DataTable.jsx` — table column rendering
+
+---
+
+### Test Query Panel for Agent Creation — 2026-03-10 (complete)
+
+New iterative query refinement workflow built into the "Create Agent" form on the Automation page.
+
+**Problem solved:** Agents were being created with incorrect queries, so the data they operated on was wrong. Users had no way to verify a query before activating an agent.
+
+**How it works:**
+1. User fills in agent instructions (e.g. "Find sales orders over $10,000")
+2. Clicks "Run Test" → `POST /api/automation/test-query` generates the SuiteQL query and runs it against NetSuite
+3. UI shows: generated SQL query, total result count, and a 5-row preview table
+4. Three refinement options:
+   - **Accept this query** — locks the plan; sent as `cachedPlan` when saving the agent (skips Groq on first run)
+   - **Results look wrong** → feedback textarea → "Refine & retry" — sends previous plan + feedback to Groq for correction
+   - **Edit SQL** — turns query into an editable textarea → "Run edited query" sends `customQuery` directly
+5. Changing the instructions text invalidates any accepted plan
+
+**Architecture:**
+- `POST /api/automation/test-query` — no side effects, supports `{ instructions, feedback, previousPlan, customQuery }` — runs via `testAgentQuery()` in `autonomousAgentService.js`
+- `testAgentQuery()` bypasses plan cache, supports manual SQL override, saves `correction` memory when user edits
+- `POST /api/automation/agents` and `PUT /api/automation/agents/:id` both accept `cachedPlan` to seed the plan on create/update
+
+**Key files:**
+- `server/services/autonomousAgentService.js` — `testAgentQuery()` function
+- `server/routes/autonomousAgents.js` — `POST /api/automation/test-query` endpoint
+- `client/src/pages/AutomationPage.jsx` — Test Query panel in `AgentForm`
+
+---
+
+### SuiteQL Status Filter Fix — 2026-03-10 (complete)
+
+**Problem:** AI was adding `NOT LIKE '%Billed%'` status filters to sales order queries even when the user did not ask for "open" or "unbilled" orders. This caused some valid records to be excluded.
+
+**Root cause:** The schema context guidance was ambiguous, and the single "sales order" example had status filters baked in.
+
+**Fix:**
+- Added `CRITICAL:` note to `S_TRANSACTION` in `schemaContext.js`: only add status filters when instructions explicitly mention "open", "unbilled", "not billed", "pending", or similar
+- Split the single sales order example into two separate variants:
+  - `open/unbilled` (tagged: `open order`, `unbilled`, `not billed`) — with full status filters
+  - `all orders` (tagged: `sales order`, `salesord`, `all sales orders`) — no status filters at all
+- `S_SYNTAX` already bans `YEAR()` / `MONTH()` functions
+
+---
+
+### NetSuite Live Schema Integration — 2026-03-10 (complete)
+
+Integrated the full 25.6MB NetSuite JSON schema export into the AI decision-making pipeline.
+
+**Problem:** The hand-curated schema in `schemaContext.js` only covered ~15 tables. When users asked about less common tables (e.g. `opportunity`, `supportcase`, `item`), the AI had to guess field names and often got them wrong.
+
+**Solution — Parse once → SQLite → keyword lookup at query time:**
+1. `netsuite-schema.json` (2,123 tables, 55,984 columns, 72,127 relationships) imported into SQLite via `importNetSuiteSchema.js`
+2. `schemaLookup.js` does keyword-based table matching at query time — finds relevant tables, fetches their real column names and data types, formats into a compact prompt block (~200-600 tokens)
+3. `schemaContext.js` `buildSchemaContext()` appends the live schema block after the hand-curated sections
+4. `POST /api/netsuite/import-schema` endpoint lets admins re-import via API after schema updates
+
+**Token efficiency:** Always includes `transaction`, `transactionline`, `customer` (3 core tables). Adds up to 6 more tables matched by keyword. Max 20 columns per table. At most 15 join relationships.
+
+**Key files:**
+- `server/scripts/importNetSuiteSchema.js` — one-time import script (re-runnable)
+- `server/services/schemaLookup.js` — keyword search + compact prompt formatting
+- `server/services/schemaContext.js` — updated `buildSchemaContext()` to append live schema
+- `server/routes/netsuite.js` — `GET /api/netsuite/schema-stats`, `POST /api/netsuite/import-schema`
+- `server/db/database.js` — `ns_schema_tables`, `ns_schema_columns`, `ns_schema_relationships` tables + indexes

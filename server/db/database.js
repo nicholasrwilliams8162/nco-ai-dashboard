@@ -201,4 +201,39 @@ db.exec(`
   )
 `);
 
+// NetSuite schema import — populated by scripts/importNetSuiteSchema.js
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ns_schema_tables (
+    id           TEXT PRIMARY KEY,
+    label        TEXT NOT NULL,
+    column_count INTEGER NOT NULL DEFAULT 0
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ns_schema_columns (
+    table_id  TEXT NOT NULL,
+    column_id TEXT NOT NULL,
+    label     TEXT NOT NULL,
+    data_type TEXT NOT NULL,
+    PRIMARY KEY (table_id, column_id)
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ns_schema_relationships (
+    from_table  TEXT NOT NULL,
+    from_column TEXT NOT NULL,
+    to_table    TEXT NOT NULL,
+    to_column   TEXT NOT NULL,
+    cardinality TEXT,
+    join_type   TEXT,
+    label       TEXT
+  )
+`);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_cols_table ON ns_schema_columns(table_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_rels_from  ON ns_schema_relationships(from_table)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_ns_rels_to    ON ns_schema_relationships(to_table)`);
+
 export default db;

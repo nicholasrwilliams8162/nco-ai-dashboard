@@ -1,3 +1,5 @@
+import { lookupSchema } from './schemaLookup.js';
+
 // ─── Schema sections — each exported individually so buildSchemaContext()
 // can include only what a given query actually needs. ───────────────────────
 
@@ -194,8 +196,8 @@ function pickExamples(text) {
 
 /**
  * Build a minimal schema context for the given text (question or instructions).
- * Only includes sections relevant to the keywords found, plus always-needed rules.
- * Typically 40–60% fewer tokens than the full schema.
+ * Combines hand-curated rules + real field definitions from the imported NetSuite schema.
+ * The live schema lookup adds real column names/types for tables matched by keyword.
  */
 export function buildSchemaContext(text) {
   const t = text.toLowerCase();
@@ -230,6 +232,10 @@ export function buildSchemaContext(text) {
 
   const examples = pickExamples(t);
   if (examples) sections.push('EXAMPLES:\n' + examples);
+
+  // Append live schema reference (real field names from imported NetSuite schema)
+  const liveSchema = lookupSchema(text);
+  if (liveSchema) sections.push(liveSchema);
 
   return sections.join('\n').trim();
 }
