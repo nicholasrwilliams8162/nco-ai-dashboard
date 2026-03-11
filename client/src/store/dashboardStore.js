@@ -10,7 +10,7 @@ export const useDashboardStore = create((set, get) => ({
   lastRefreshed: null,
   error: null,
   authStatus: { connected: false, accountId: null },
-  openrouterKeySet: false,
+  anthropicKeySet: false,
 
   checkAuth: async () => {
     try {
@@ -18,7 +18,7 @@ export const useDashboardStore = create((set, get) => ({
         api.get('/auth/netsuite/status'),
         api.get('/auth/settings'),
       ]);
-      set({ authStatus: nsRes.data, openrouterKeySet: settingsRes.data.openrouterKeySet });
+      set({ authStatus: nsRes.data, anthropicKeySet: settingsRes.data.anthropicKeySet });
     } catch {
       set({ authStatus: { connected: false, accountId: null } });
     }

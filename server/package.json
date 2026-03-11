@@ -7,6 +7,7 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@clerk/express": "^2.0.1",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.6.0",

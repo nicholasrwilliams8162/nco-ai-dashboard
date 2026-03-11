@@ -1,73 +1,44 @@
 /**
- * aiClient.js — OpenRouter wrapper.
+ * aiClient.js — Anthropic Claude Haiku 4.5
  *
- * OpenRouter is OpenAI-API-compatible and routes to many models.
- * Using meta-llama/llama-3.3-70b-instruct:free as default free model —
- * better instruction-following than raw Groq.
+ * Best instruction-following for SuiteQL generation + JSON output.
+ * Cost: ~$0.006/call ($0.80/M input, $4/M output)
  *
- * Get a free key at openrouter.ai → Keys.
- * Keys start with sk-or-...
+ * Get an API key at console.anthropic.com → API Keys.
+ * Keys start with sk-ant-...
  */
 
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import db from '../db/database.js';
 
-// Free models tried in order — all verified against OpenRouter /models endpoint
-const MODELS = [
-  'stepfun/step-3.5-flash:free',
-  'qwen/qwen3-next-80b-a3b-instruct:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'mistralai/mistral-small-3.1-24b-instruct:free',
-  'google/gemma-3-27b-it:free',
-];
-const BASE_URL = 'https://openrouter.ai/api/v1';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 export async function callAI(systemPrompt, messages, userId) {
   const row = userId
-    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").get(userId)
+    ? db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'anthropic_api_key'").get(userId)
     : null;
-  const apiKey = row?.value || process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error('OpenRouter API key is not configured. Add it in Settings.');
+  const apiKey = row?.value || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('Anthropic API key is not configured. Add it in Settings.');
 
-  const client = new OpenAI({
-    apiKey,
-    baseURL: BASE_URL,
-    defaultHeaders: {
-      'HTTP-Referer': 'https://nco-ai-dashboard.app',
-      'X-Title': 'NCO AI Dashboard',
-    },
+  const client = new Anthropic({ apiKey });
+
+  // Claude uses system as a top-level param, not a message role
+  const response = await client.messages.create({
+    model: MODEL,
+    system: systemPrompt,
+    messages: messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    })),
+    max_tokens: 4000,
+    temperature: 0.1,
   });
 
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const text = response.content[0]?.text || '';
 
-  let lastError;
-  for (let i = 0; i < MODELS.length; i++) {
-    const model = MODELS[i];
-    if (i > 0) await sleep(2000); // brief pause between fallbacks to avoid account-level rate limits
-
-    try {
-      const response = await client.chat.completions.create({
-        model,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 4000,
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-      });
-      if (response.choices?.[0]?.message?.content) {
-        if (i > 0) console.log(`[AI] Using fallback model: ${model}`);
-        return response.choices[0].message.content;
-      }
-      lastError = new Error(`Empty response from ${model}`);
-    } catch (err) {
-      const status = err?.status || err?.response?.status;
-      const msg = err.message || '';
-      if (status === 429 || status === 503 || status === 404 || msg.includes('overloaded') || msg.includes('No endpoints') || msg.includes('Provider returned error')) {
-        console.warn(`[AI] ${model} unavailable (${status}), trying next…`);
-        lastError = err;
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastError || new Error('All OpenRouter models unavailable. Try again in a moment.');
+  // Extract JSON — Claude reliably returns JSON when system prompt requests it
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Claude did not return valid JSON');
+  return text.slice(start, end + 1);
 }

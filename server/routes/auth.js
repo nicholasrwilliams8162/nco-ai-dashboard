@@ -134,21 +134,21 @@ router.get('/netsuite/callback', async (req, res) => {
 
 // GET /api/auth/settings — returns which keys are set (never the values)
 router.get('/settings', requireClerkAuth, (req, res) => {
-  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").get(req.userId);
-  const envKey = process.env.OPENROUTER_API_KEY;
+  const row = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'anthropic_api_key'").get(req.userId);
+  const envKey = process.env.ANTHROPIC_API_KEY;
   const isSet = !!(row?.value || envKey);
-  res.json({ openrouterKeySet: isSet });
+  res.json({ anthropicKeySet: isSet });
 });
 
 // POST /api/auth/settings — save API keys
 router.post('/settings', requireClerkAuth, (req, res) => {
-  const { openrouterApiKey } = req.body;
-  if (openrouterApiKey !== undefined) {
-    if (!openrouterApiKey.trim()) {
-      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'openrouter_api_key'").run(req.userId);
+  const { anthropicApiKey } = req.body;
+  if (anthropicApiKey !== undefined) {
+    if (!anthropicApiKey.trim()) {
+      db.prepare("DELETE FROM user_settings WHERE user_id = ? AND key = 'anthropic_api_key'").run(req.userId);
     } else {
-      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'openrouter_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
-        .run(req.userId, openrouterApiKey.trim());
+      db.prepare("INSERT INTO user_settings (user_id, key, value) VALUES (?, 'anthropic_api_key', ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value")
+        .run(req.userId, anthropicApiKey.trim());
     }
   }
   res.json({ ok: true });

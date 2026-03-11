@@ -65,7 +65,7 @@ function StyledInput({ type = 'text', value, onChange, onKeyDown, placeholder, m
 }
 
 export function SettingsPanel({ onClose, initialError }) {
-  const { authStatus, openrouterKeySet, checkAuth } = useDashboardStore();
+  const { authStatus, anthropicKeySet, checkAuth } = useDashboardStore();
   const [accountId, setAccountId] = useState(authStatus.accountId || '');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
@@ -74,20 +74,20 @@ export function SettingsPanel({ onClose, initialError }) {
   const [error, setError] = useState(initialError || null);
   const [showSetup, setShowSetup] = useState(false);
 
-  const [openrouterKey, setOpenrouterKey] = useState('');
+  const [anthropicKey, setAnthropicKey] = useState('');
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [keyError, setKeyError] = useState(null);
   const [keySaved, setKeySaved] = useState(false);
 
-  const handleSaveOpenrouterKey = async () => {
-    if (!openrouterKey.trim()) { setKeyError('API key is required.'); return; }
+  const handleSaveAnthropicKey = async () => {
+    if (!anthropicKey.trim()) { setKeyError('API key is required.'); return; }
     setIsSavingKey(true);
     setKeyError(null);
     setKeySaved(false);
     try {
-      await api.post('/auth/settings', { openrouterApiKey: openrouterKey.trim() });
+      await api.post('/auth/settings', { anthropicApiKey: anthropicKey.trim() });
       await checkAuth();
-      setOpenrouterKey('');
+      setAnthropicKey('');
       setKeySaved(true);
       setTimeout(() => setKeySaved(false), 3000);
     } catch {
@@ -288,13 +288,13 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
           )}
 
-          {/* OpenRouter API Key */}
+          {/* Anthropic API Key */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', margin: 0 }}>
-                OpenRouter API Key
+                Anthropic API Key
               </p>
-              {openrouterKeySet ? (
+              {anthropicKeySet ? (
                 <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--green-light)', color: 'var(--green)', borderRadius: 6, fontWeight: 700 }}>
                   Saved
                 </span>
@@ -308,15 +308,15 @@ export function SettingsPanel({ onClose, initialError }) {
               <div style={{ flex: 1 }}>
                 <StyledInput
                   type="password"
-                  value={openrouterKey}
-                  onChange={e => setOpenrouterKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveOpenrouterKey()}
-                  placeholder={openrouterKeySet ? 'Enter new key to replace…' : 'sk-or-…'}
+                  value={anthropicKey}
+                  onChange={e => setAnthropicKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveAnthropicKey()}
+                  placeholder={anthropicKeySet ? 'Enter new key to replace…' : 'sk-ant-…'}
                   mono
                 />
               </div>
               <button
-                onClick={handleSaveOpenrouterKey}
+                onClick={handleSaveAnthropicKey}
                 disabled={isSavingKey}
                 style={{
                   flexShrink: 0, padding: '10px 16px',
@@ -330,7 +330,7 @@ export function SettingsPanel({ onClose, initialError }) {
             </div>
             {keyError && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{keyError}</p>}
             <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }}>
-              Get a free key at <span style={{ color: 'var(--text-2)' }}>openrouter.ai</span> → Keys. Model: Llama 3.3 70B. Never sent to the browser after saving.
+              Get a key at <span style={{ color: 'var(--text-2)' }}>console.anthropic.com</span> → API Keys. Model: Claude Haiku 4.5 (~$0.006/query). Never sent to the browser after saving.
             </p>
           </div>
         </div>
