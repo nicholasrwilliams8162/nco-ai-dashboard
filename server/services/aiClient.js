@@ -11,7 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import db from '../db/database.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-3-5-haiku-20241022';
 
 export async function callAI(systemPrompt, messages, userId) {
   const row = userId
