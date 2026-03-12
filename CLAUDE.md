@@ -110,7 +110,7 @@ Client reads `VITE_CLERK_PUBLISHABLE_KEY` from `client/.env`.
 - **Item display name**: `BUILTIN.DF(tl.item) AS item_name` — never JOIN to the `item` table (permission denied on integration role)
 - **Employee names**: use `firstname` and `lastname` columns — `entityid` returns inconsistent formats
 - **Transaction totals**: use `foreigntotal` — `amount` is not reliable for SalesOrd/CustInvc/VendBill
-- **Open SalesOrd**: `BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%'` — `LIKE '%Open%'` matches nothing
+- **Open SalesOrd**: `BUILTIN.DF(t.status) LIKE '%Pending%'` — covers Pending Approval, Pending Fulfillment, Pending Billing/Partially Fulfilled, Pending Billing. `LIKE '%Open%'` matches nothing. `NOT LIKE '%Billed%'` is wrong — it excludes "Pending Billing" orders.
 - **ROWNUM + GROUP BY**: wrap in subquery — `SELECT * FROM (...GROUP BY...ORDER BY...) WHERE ROWNUM <= N`
 - **Booleans**: `'T'` / `'F'` (not `TRUE`/`FALSE`)
 - **Current date**: `SYSDATE` (not hardcoded `TO_DATE`)

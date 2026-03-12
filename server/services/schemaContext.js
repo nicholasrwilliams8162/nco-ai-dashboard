@@ -26,7 +26,7 @@ STATUS: internal code — always use BUILTIN.DF(t.status) to display or filter.
   literally present in the instruction.
   ══════════════════════════════════════════════════════════════════════
   When a filter IS required:
-  SalesOrd open: BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'. NEVER use LIKE '%Open%' for SalesOrd — it matches nothing.
+  SalesOrd open: BUILTIN.DF(t.status) LIKE '%Pending%'  ← use this positive filter; covers Pending Approval, Pending Fulfillment, Pending Billing/Partially Fulfilled, Pending Billing. NEVER use LIKE '%Open%' — it matches nothing. NEVER use NOT LIKE '%Billed%' — it incorrectly excludes "Pending Billing" statuses.
   CustInvc/VendBill: open=BUILTIN.DF(t.status) LIKE '%Open%', paid=LIKE '%Paid%'
   PurchOrd: active=LIKE '%Pending%', done=LIKE '%Closed%'`;
 
@@ -112,7 +112,7 @@ WHERE t.type = 'CustInvc' AND BUILTIN.DF(t.status) LIKE '%Open%' ORDER BY t.tran
     sql: `-- Open/unbilled sales orders only (use status filter ONLY when instructions say "open" or "not billed"):
 SELECT t.id AS txn_id, t.tranid, t.trandate, t.entity AS entity_id, BUILTIN.DF(t.entity) AS customer, t.foreigntotal AS amount, BUILTIN.DF(t.status) AS status
 FROM transaction t
-WHERE t.type = 'SalesOrd' AND BUILTIN.DF(t.status) NOT LIKE '%Billed%' AND BUILTIN.DF(t.status) NOT LIKE '%Closed%' AND BUILTIN.DF(t.status) NOT LIKE '%Cancelled%'
+WHERE t.type = 'SalesOrd' AND BUILTIN.DF(t.status) LIKE '%Pending%'
 ORDER BY t.trandate DESC`,
   },
   {

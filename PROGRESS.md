@@ -274,9 +274,27 @@ Full UI redesign — sidebar navigation, dual light/dark theme, Manrope font.
 
 ---
 
+### AI Provider: Anthropic Claude Haiku 4.5 — 2026-03-12 (complete)
+
+Switched AI provider from Groq (llama-3.3-70b-versatile) to Anthropic Claude Haiku 4.5.
+
+**Changes:**
+- `server/services/aiClient.js` — rewritten to use `@anthropic-ai/sdk`. Model: `claude-haiku-4-5-20251001`
+- API key stored in `user_settings` table under key `anthropic_api_key` (was `groq_api_key`)
+- Prefill trick: appends `{ role: 'assistant', content: '{' }` to force JSON-first output (Anthropic has no `response_format` param)
+- Brace-matching extractor (`extractFirstObject`) replaces `lastIndexOf('}')` — walks string tracking depth + string literals so trailing text after the JSON object never breaks parsing
+- System prompt appended with `Respond with ONLY a valid JSON object. No markdown, no explanation.`
+
+**SuiteQL status filter correction:**
+- `NOT LIKE '%Billed%'` incorrectly excluded "Pending Billing" orders
+- Corrected to `BUILTIN.DF(t.status) LIKE '%Pending%'` — positive whitelist covering all active SalesOrd statuses
+- Updated in `schemaContext.js`, `autonomousAgentService.js` planner prompt, and `CLAUDE.md`
+
+---
+
 ## Current status
 
-**Mostly working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, multi-tenant Clerk auth, and v4 design system all functional. Agentic engine refactor complete — MCP calls blocked on 401 until NetSuite-side setup (Bundle 522506 + permission) is done. Old `aiService.js` / `agentService.js` retained as fallback until MCP is validated.
+**Fully working.** Dashboard queries, agent write operations, autonomous scheduled agents, Railway cloud deployment, Electron desktop app, multi-tenant Clerk auth, and v4 design system all functional. AI provider switched to Anthropic Claude Haiku 4.5. MCP pipeline validated end-to-end against live NetSuite trial account.
 
 ## Key files
 

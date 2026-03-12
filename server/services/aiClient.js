@@ -1,8 +1,8 @@
 /**
  * aiClient.js — Anthropic Claude Haiku 4.5
  *
- * Best instruction-following for SuiteQL generation + JSON output.
- * Cost: ~$0.006/call ($0.80/M input, $4/M output)
+ * Fast, cost-effective model for SuiteQL generation.
+ * Model: claude-haiku-4-5-20251001
  *
  * Get an API key at console.anthropic.com → API Keys.
  * Keys start with sk-ant-...
@@ -11,7 +11,26 @@
 import Anthropic from '@anthropic-ai/sdk';
 import db from '../db/database.js';
 
-const MODEL = 'claude-3-5-haiku-20241022';
+const MODEL = 'claude-haiku-4-5-20251001';
+
+/** Walk forward from `start` to find the matching closing brace. */
+function extractFirstObject(text) {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return null;
+}
 
 export async function callAI(systemPrompt, messages, userId) {
   const row = userId
@@ -22,23 +41,22 @@ export async function callAI(systemPrompt, messages, userId) {
 
   const client = new Anthropic({ apiKey });
 
-  // Claude uses system as a top-level param, not a message role
   const response = await client.messages.create({
     model: MODEL,
-    system: systemPrompt,
-    messages: messages.map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content,
-    })),
     max_tokens: 4000,
-    temperature: 0.1,
+    system: systemPrompt + '\n\nRespond with ONLY a valid JSON object. No markdown, no explanation, no text outside the JSON.',
+    messages: [
+      ...messages.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+      // Prefill forces the model to begin the JSON object immediately
+      { role: 'assistant', content: '{' },
+    ],
   });
 
-  const text = response.content[0]?.text || '';
-
-  // Extract JSON — Claude reliably returns JSON when system prompt requests it
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('Claude did not return valid JSON');
-  return text.slice(start, end + 1);
+  const text = '{' + (response.content[0]?.text || '');
+  const json = extractFirstObject(text);
+  if (!json) throw new Error('AI did not return valid JSON');
+  return json;
 }
